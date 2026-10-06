@@ -92,6 +92,7 @@ model User {
   coins             Int           @default(0)
   usernameChangedAt DateTime?
   onboardedAt       DateTime?
+  emailVerifiedAt   DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   deletedAt         DateTime?
@@ -135,6 +136,7 @@ model User {
   giftsReceived     Gift[]             @relation("GiftRecipient")
   pushSubscriptions PushSubscription[]
   moderationActions ModerationAction[]
+  authTokens        AuthToken[]
 }
 
 model Session {
@@ -653,4 +655,34 @@ model ModerationAction {
 
   @@index([targetType, targetId])
   @@index([createdAt(sort: Desc)])
+}
+
+enum AuthTokenPurpose {
+  PASSWORD_RESET
+  EMAIL_VERIFY
+}
+
+/// 1회용 인증 토큰 (비밀번호 재설정/이메일 인증). 원본 토큰은 메일 링크에만 있고 DB에는 해시만 저장.
+model AuthToken {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   AuthTokenPurpose
+  tokenHash String           @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, purpose])
+}
+
+/// 개발 환경 전용 메일 보관함 (SMTP 미설정 시). production에서는 쓰지 않는다.
+model DevMail {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([to, createdAt(sort: Desc)])
 }

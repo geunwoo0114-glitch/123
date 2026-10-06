@@ -21,6 +21,7 @@ import { StatusStrip } from "@/components/home/status-strip";
 import { SuggestionList } from "@/components/home/suggestions";
 import { Landing } from "@/components/home/landing";
 import { InstallCard } from "@/components/pwa/install-card";
+import { VerifyBanner } from "@/components/home/verify-banner";
 
 const iconLink = "flex size-10 items-center justify-center rounded-full text-fg-muted hover:bg-surface-muted";
 
@@ -30,7 +31,7 @@ export default async function HomePage() {
   if (!user.onboarded) redirect("/onboarding");
 
   const [meRow, feed, strip, suggestions, stats, wallet, requests, dms] = await Promise.all([
-    db.user.findUniqueOrThrow({ where: { id: user.id }, select: userCardSelect }),
+    db.user.findUniqueOrThrow({ where: { id: user.id }, select: { ...userCardSelect, email: true, emailVerifiedAt: true } }),
     getHomeFeed(user.id),
     getFriendsStatusStrip(user.id),
     suggestFriends(user.id, 5),
@@ -64,7 +65,7 @@ export default async function HomePage() {
       <div className="mx-auto flex max-w-6xl gap-8 px-4 pt-2 pb-10 lg:pt-6">
         <div className="mx-auto w-full max-w-[600px] min-w-0">
           <StatusStrip me={me} friends={strip} />
-          <InstallCard />
+          {!meRow.emailVerifiedAt ? <VerifyBanner email={meRow.email} /> : <InstallCard />}
 
           <Link href="/write" className="space-card mt-4 flex items-center gap-3 p-4 transition-shadow hover:shadow-3">
             <Avatar name={me.displayName} avatarKey={me.avatarKey} minimi={me.minimi} size="md" />

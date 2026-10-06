@@ -14,6 +14,7 @@ import { economy } from "@/features/town/games";
 import { defaultWidgets } from "@/features/space/themes";
 import { track } from "@/features/analytics/track";
 import { loginSchema, signupSchema } from "./schemas";
+import { sendVerificationMail } from "./verification";
 
 export type AuthFormState = ActionResult | null;
 
@@ -51,6 +52,8 @@ export async function signupAction(_prev: AuthFormState, formData: FormData): Pr
   }
   await createSession(userId);
   track("signup", userId);
+  // 인증 메일은 가입을 막지 않는다 (홈에서 인증 안내)
+  void sendVerificationMail(userId, email, displayName);
   redirect("/onboarding");
 }
 
