@@ -31,6 +31,7 @@
 - 인증: 자체 구현 DB 세션(httpOnly 쿠키, SHA-256 토큰 해시) + scrypt 비밀번호 해시
 - 검증: **zod** (모든 서버 입력) · 이미지: **sharp** (EXIF 회전 보정/메타데이터 제거/webp/썸네일)
 - 미니미: **DiceBear Notionists** (CC0) · 아이콘: lucide-react · 폰트: Pretendard
+- 푸시: **web-push**(VAPID) + 서비스 워커(`public/sw.js`) — 키가 없으면 푸시만 꺼진 채 동작
 - 테스트: **Vitest**(권한/검증/경제 로직) · **Playwright**(핵심 사용자 흐름, 데스크톱+모바일)
 
 ## 시작하기
@@ -41,6 +42,7 @@ npm install
 
 # 2) 환경 변수
 cp .env.example .env    # DATABASE_URL 수정
+npx web-push generate-vapid-keys   # (선택) 푸시를 쓰려면 키를 .env에 넣기
 
 # 3) DB 마이그레이션 + 데모 데이터
 npm run db:migrate
