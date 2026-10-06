@@ -9,20 +9,22 @@
   --surface-muted: #f1ece4;
   --surface-sunken: #e9e3d9;
   --fg: #1d1915;
-  --fg-muted: #6a625a;
-  --fg-subtle: #9a9187;
+  --fg-muted: #5f584f;
+  --fg-subtle: #6f675e;
   --line: #e7e0d5;
   --line-strong: #d5cbbd;
-  --primary: #e2582f;
-  --primary-hover: #cc4a23;
+  /* WCAG AA(4.5:1) 대비를 만족하는 브랜드 주황 */
+  --primary: #bd431c;
+  --primary-hover: #a63a17;
   --on-primary: #ffffff;
-  --primary-soft: #fde9e1;
-  --success: #23885d;
+  --primary-soft: #fdeee8;
+  --success: #1f7851;
   --success-soft: #def3e9;
-  --warning: #b97c12;
+  --warning: #8c610f;
   --warning-soft: #fbf0d6;
-  --danger: #cf3f3f;
+  --danger: #c03030;
   --danger-soft: #fbe3e3;
+  --on-danger: #ffffff;
   --focus: #2f78c4;
   --overlay: rgba(29, 25, 21, 0.45);
 
@@ -52,12 +54,17 @@
   --surface-sunken: #2c2722;
   --fg: #f3eee7;
   --fg-muted: #b5aca1;
-  --fg-subtle: #857c72;
+  --fg-subtle: #968d82;
   --line: #322d27;
   --line-strong: #453e36;
   --primary: #f06d45;
   --primary-hover: #f5835f;
+  --on-primary: #1d1915;
   --primary-soft: #3a2219;
+  --success: #5fd39b;
+  --warning: #e8b44f;
+  --danger: #f07a7a;
+  --on-danger: #1d1915;
   --success-soft: #16301f;
   --warning-soft: #33280f;
   --danger-soft: #3a1a1a;
@@ -75,12 +82,17 @@
     --surface-sunken: #2c2722;
     --fg: #f3eee7;
     --fg-muted: #b5aca1;
-    --fg-subtle: #857c72;
+    --fg-subtle: #968d82;
     --line: #322d27;
     --line-strong: #453e36;
     --primary: #f06d45;
     --primary-hover: #f5835f;
+    --on-primary: #1d1915;
     --primary-soft: #3a2219;
+    --success: #5fd39b;
+    --warning: #e8b44f;
+    --danger: #f07a7a;
+    --on-danger: #1d1915;
     --success-soft: #16301f;
     --warning-soft: #33280f;
     --danger-soft: #3a1a1a;
@@ -111,6 +123,7 @@
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-on-danger: var(--on-danger);
   --color-accent: var(--space-accent);
   --color-on-accent: var(--space-on-accent);
   --color-accent-soft: var(--space-soft-current);
@@ -273,15 +286,21 @@
 .space-scope {
   --space-surface-tint: var(--space-tint);
   --space-soft-current: var(--space-soft);
+  --space-accent: var(--space-accent-light);
+  --space-on-accent: var(--space-on-accent-light);
 }
 :root[data-theme="dark"] .space-scope {
   --space-surface-tint: var(--space-tint-dark);
   --space-soft-current: var(--space-soft-dark);
+  --space-accent: var(--space-accent-dark);
+  --space-on-accent: #1d1915;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .space-scope {
     --space-surface-tint: var(--space-tint-dark);
     --space-soft-current: var(--space-soft-dark);
+    --space-accent: var(--space-accent-dark);
+    --space-on-accent: #1d1915;
   }
 }
 

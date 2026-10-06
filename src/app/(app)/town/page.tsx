@@ -19,7 +19,7 @@ export default async function TownPlaza() {
         <p className="mt-1 text-caption text-fg-muted">
           하루 {economy.dailyGameCap}개까지 모을 수 있어요. 다 모아도 게임은 계속 즐길 수 있어요.
         </p>
-        <div className="mt-4 h-3 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-valuemin={0} aria-valuemax={economy.dailyGameCap} aria-valuenow={wallet.gameEarnedToday}>
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-label="오늘 게임으로 모은 밤톨" aria-valuemin={0} aria-valuemax={economy.dailyGameCap} aria-valuenow={wallet.gameEarnedToday}>
           <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-right text-caption font-semibold tabular-nums">

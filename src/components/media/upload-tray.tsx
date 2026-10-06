@@ -39,6 +39,7 @@ export function UploadTray({ uploads, max, compact }: { uploads: ReturnType<type
         multiple={max > 1}
         className="sr-only"
         tabIndex={-1}
+        aria-label="사진 파일 선택"
         onChange={(e) => {
           if (e.target.files) void handle(e.target.files);
           e.target.value = "";
