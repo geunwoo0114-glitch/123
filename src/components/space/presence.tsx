@@ -1,19 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRealtime } from "@/components/realtime/use-realtime";
 import type { PresentVisitor } from "@/features/presence/service";
 import { minimiUrl } from "@/features/avatar/schema";
 import { Avatar } from "@/components/ui/avatar";
 
 const HEARTBEAT_MS = 15_000;
+/** 걷기 위치는 이 간격으로 묶어서 보낸다 */
+const MOVE_THROTTLE_MS = 300;
 
 /**
  * 공간에 머무는 동안 15초마다 '여기 있어요' 신호를 보내고 함께 있는 사람을 받아온다.
+ * 같은 공간 사람의 들어옴/움직임/나감은 실시간 이벤트(SSE)로 바로 반영한다.
  * 탭이 가려지면 멈추고, 페이지를 떠나면 바로 나갔다고 알린다.
  */
 export function usePresence(username: string | null) {
   const [people, setPeople] = useState<PresentVisitor[]>([]);
+  const hostId = useRef<string | null>(null);
+  const beatNow = useRef<() => void>(() => {});
+  const moveState = useRef<{ timer: ReturnType<typeof setTimeout> | null; pending: { x: number; z: number } | null; last: string }>({ timer: null, pending: null, last: "" });
 
   useEffect(() => {
     if (!username) return;
@@ -23,6 +30,7 @@ export function usePresence(username: string | null) {
 
     async function beat() {
       if (stopped) return;
+      clearTimeout(timer);
       if (document.visibilityState === "visible") {
         try {
           const res = await fetch("/api/presence", { method: "POST", body: body(), headers: { "Content-Type": "application/json" }, cache: "no-store" });
@@ -31,7 +39,8 @@ export function usePresence(username: string | null) {
             return;
           }
           if (res.ok) {
-            const data = (await res.json()) as { people: PresentVisitor[] };
+            const data = (await res.json()) as { hostId: string; people: PresentVisitor[] };
+            hostId.current = data.hostId;
             if (!stopped) setPeople(data.people);
           }
         } catch {
@@ -40,20 +49,25 @@ export function usePresence(username: string | null) {
       }
       if (!stopped) timer = setTimeout(beat, HEARTBEAT_MS);
     }
+    beatNow.current = () => void beat();
 
     const leave = () => navigator.sendBeacon?.("/api/presence", body(true));
     const onVisible = () => {
-      if (document.visibilityState === "visible" && !stopped) {
-        clearTimeout(timer);
-        void beat();
-      }
+      if (document.visibilityState === "visible" && !stopped) void beat();
     };
     void beat();
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("pagehide", leave);
+    const move = moveState.current;
     return () => {
       stopped = true;
       clearTimeout(timer);
+      if (move.timer) clearTimeout(move.timer);
+      move.timer = null;
+      move.pending = null;
+      move.last = "";
+      beatNow.current = () => {};
+      hostId.current = null;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pagehide", leave);
       // 같은 앱 안에서 다른 페이지로 이동할 때도 나갔다고 알린다
@@ -62,7 +76,44 @@ export function usePresence(username: string | null) {
     };
   }, [username]);
 
-  return people;
+  useRealtime((e) => {
+    if (e.type !== "presence" || !hostId.current || e.hostId !== hostId.current) return;
+    if (e.kind === "leave") return setPeople((ps) => ps.filter((p) => p.id !== e.id));
+    if (e.kind === "join") return beatNow.current();
+    setPeople((ps) => {
+      if (!ps.some((p) => p.id === e.id)) {
+        beatNow.current();
+        return ps;
+      }
+      return ps.map((p) => (p.id === e.id ? { ...p, x: e.x ?? null, z: e.z ?? null } : p));
+    });
+  }, !!username);
+
+  /** 내 자리 옮기기 (0.3초 간격으로 마지막 위치만 보낸다) */
+  const move = useCallback(
+    (x: number, z: number) => {
+      if (!username) return;
+      const m = moveState.current;
+      m.pending = { x, z };
+      if (m.timer) return;
+      const send = () => {
+        const next = m.pending;
+        m.pending = null;
+        // 같은 자리를 다시 보내지 않는다
+        if (!next || `${next.x},${next.z}` === m.last) {
+          m.timer = null;
+          return;
+        }
+        m.last = `${next.x},${next.z}`;
+        void fetch("/api/presence", { method: "POST", body: JSON.stringify({ username, ...next }), headers: { "Content-Type": "application/json" }, cache: "no-store" }).catch(() => undefined);
+        m.timer = setTimeout(send, MOVE_THROTTLE_MS);
+      };
+      send();
+    },
+    [username],
+  );
+
+  return { people, move };
 }
 
 /** 방 바닥에 서 있는 '지금 함께 있는 사람들' */

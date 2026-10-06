@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { getSpace } from "@/features/space/queries";
 import { ownedItemIds } from "@/features/town/service";
+import { parseAvatar } from "@/features/avatar/schema";
 import { HouseView } from "@/components/house/house-view";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]/house">) {
@@ -20,6 +21,9 @@ export default async function HousePage({ params, searchParams }: PageProps<"/u/
   if (!space.canView || space.relation.state === "BLOCKED") return null;
   const isOwner = space.relation.state === "SELF";
 
+  // 내 미니미 (놀러 온 사람도 방 안을 걸어 다닌다)
+  const myMinimi = viewer ? (isOwner ? space.owner.minimi : parseAvatar((await db.profile.findUnique({ where: { userId: viewer.id }, select: { avatar: true } }))?.avatar)) : null;
+
   const [owned, me] = isOwner
     ? await Promise.all([ownedItemIds(space.owner.id), db.user.findUnique({ where: { id: space.owner.id }, select: { coins: true } })])
     : [null, null];
@@ -29,6 +33,7 @@ export default async function HousePage({ params, searchParams }: PageProps<"/u/
       key={JSON.stringify(space.house)}
       initial={space.house}
       owner={{ username: space.owner.username, displayName: space.owner.displayName, minimi: space.owner.minimi }}
+      me={viewer && !snapshot ? { id: viewer.id, displayName: viewer.displayName, minimi: myMinimi } : null}
       isOwner={isOwner}
       presence={!!viewer && !snapshot}
       snapshot={snapshot}

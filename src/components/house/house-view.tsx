@@ -5,11 +5,13 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Paintbrush, RotateCcw, RotateCw, Save, Trash2, X } from "lucide-react";
 import {
+  CELL,
   GRID,
   MAX_ITEMS,
   MAX_PER_KIND,
   categoryLabels,
   collides,
+  describeSpot,
   findFreeSpot,
   floorStyles,
   footprint,
@@ -17,7 +19,10 @@ import {
   furnitureByKind,
   houseItemId,
   inBounds,
+  isWallItem,
   lightModes,
+  nearestWalkable,
+  standingSpots,
   tintColors,
   validateHouse,
   wallStyles,
@@ -34,6 +39,7 @@ import { useToast } from "@/components/ui/toast";
 import { brand } from "@/config/brand";
 import { cn } from "@/lib/cn";
 import type { Person } from "./scene";
+import { visibleWallsFor, wallRightSign } from "./wall-math";
 
 // three.js 번들은 이 화면에서만 내려받는다
 const HouseScene = dynamic(() => import("./scene"), {
@@ -67,6 +73,7 @@ function rotateDir([dx, dz]: [number, number], view: number): [number, number] {
 export function HouseView({
   initial,
   owner,
+  me = null,
   isOwner,
   presence,
   owned = [],
@@ -75,6 +82,8 @@ export function HouseView({
 }: {
   initial: HouseConfig;
   owner: Owner;
+  /** 보고 있는 사람 (로그인했을 때) — 바닥을 눌러 걸어 다닌다 */
+  me?: { id: string; displayName: string; minimi: AvatarConfig | null } | null;
   isOwner: boolean;
   /** 로그인 사용자일 때 함께 있는 사람 표시 */
   presence: boolean;
@@ -94,17 +103,48 @@ export function HouseView({
   const [pending, start] = useTransition();
   const toast = useToast();
   const router = useRouter();
-  const people = usePresence(presence ? owner.username : null);
+  const { people: present, move } = usePresence(presence ? owner.username : null);
+  const [myPos, setMyPos] = useState<[number, number] | null>(null);
+  const canWalk = presence && !!me && !snapshot;
 
-  const ownerPerson: Person = useMemo(
-    () => ({ id: "owner", name: owner.displayName, minimiUrl: owner.minimi ? minimiUrl(owner.minimi) : null, isHost: true }),
-    [owner.displayName, owner.minimi],
-  );
-  // 주인이 지금 접속해 있으면 presence 목록에도 있으니 중복을 뺀다
-  const visitors: Person[] = useMemo(
-    () => people.filter((p) => !p.isHost).map((p) => ({ id: p.id, name: p.displayName, minimiUrl: p.minimi ? minimiUrl(p.minimi) : null })),
-    [people],
-  );
+  // 방 안의 사람들: 집주인(접속 중이면 실제 자리) + 놀러 온 사람들 + 나
+  const people: Person[] = useMemo(() => {
+    if (snapshot) return [];
+    const toUrl = (m: AvatarConfig | null) => (m ? minimiUrl(m) : null);
+    const pos = (p: { x: number | null; z: number | null }): [number, number] | null => (p.x !== null && p.z !== null ? [p.x, p.z] : null);
+    const hostHere = present.find((p) => p.isHost);
+    const list: Person[] = [
+      isOwner && me
+        ? { id: me.id, name: owner.displayName, minimiUrl: toUrl(owner.minimi), isHost: true, isMe: true, pos: myPos }
+        : { id: hostHere?.id ?? "owner", name: owner.displayName, minimiUrl: toUrl(owner.minimi), isHost: true, pos: hostHere ? pos(hostHere) : null },
+      ...present.filter((p) => !p.isHost).map((p) => ({ id: p.id, name: p.displayName, minimiUrl: toUrl(p.minimi), pos: pos(p) })),
+    ];
+    if (me && !isOwner) list.push({ id: me.id, name: me.displayName, minimiUrl: toUrl(me.minimi), isMe: true, pos: myPos });
+    return list;
+  }, [snapshot, present, isOwner, me, owner.displayName, owner.minimi, myPos]);
+  // 자리가 정해지지 않은 사람은 빈자리에 세운다 (내 첫 자리도 여기서 정해진다)
+  const unplaced = people.filter((p) => !p.pos).length;
+  const spots = useMemo(() => standingSpots(house.items, unplaced), [house.items, unplaced]);
+  const placedPeople: Person[] = useMemo(() => {
+    let k = 0;
+    return people.map((p) => (p.pos ? p : { ...p, pos: spots[k++] ?? null }));
+  }, [people, spots]);
+  const visitors = people.filter((p) => !p.isHost && !p.isMe);
+  const mySpot = placedPeople.find((p) => p.isMe)?.pos ?? null;
+
+  function walk(x: number, z: number) {
+    setMyPos([x, z]);
+    move(x, z);
+  }
+
+  /** 걷기 버튼: 화면 방향으로 두 칸씩 */
+  function step(dx: number, dz: number) {
+    if (!mySpot) return;
+    const [rx, rz] = rotateDir([dx, dz], view);
+    const spot = nearestWalkable(house.items, mySpot[0] + rx * CELL * 2, mySpot[1] + rz * CELL * 2);
+    if (spot) walk(spot[0], spot[1]);
+  }
+
   const dirty = editing && JSON.stringify(house) !== JSON.stringify(initial);
   const problem = editing ? validateHouse(house, ownedSet) : null;
   const sel = selected !== null ? house.items[selected] : null;
@@ -114,7 +154,7 @@ export function HouseView({
   function placed(index: number, patch: Partial<Placement>): Placement[] | null {
     const next = house.items.map((p, i) => (i === index ? { ...p, ...patch } : p));
     const def = furnitureByKind.get(next[index].k)!;
-    if (patch.r !== undefined) {
+    if (patch.r !== undefined && !isWallItem(def)) {
       // 회전으로 방 밖으로 나가면 안쪽으로 당겨 준다
       const f = footprint(def, next[index].r);
       next[index] = { ...next[index], x: Math.min(next[index].x, GRID - f.w), z: Math.min(next[index].z, GRID - f.d) };
@@ -129,10 +169,10 @@ export function HouseView({
     return !!items;
   }
 
-  const onMove = (i: number, x: number, z: number) => void tryPlace(i, { x, z });
+  const onMove = (i: number, x: number, z: number, wl?: number) => void tryPlace(i, wl === undefined ? { x, z } : { x, z, wl });
 
   function rotateSel() {
-    if (selected === null || !sel) return;
+    if (selected === null || !sel || isWallItem(selDef ?? undefined)) return;
     if (!tryPlace(selected, { r: (sel.r + 1) % 4 })) toast("돌릴 자리가 없어요. 조금 옮긴 뒤 돌려 보세요.");
   }
 
@@ -144,6 +184,11 @@ export function HouseView({
 
   function nudge(dx: number, dz: number) {
     if (selected === null || !sel) return;
+    if (isWallItem(selDef ?? undefined) && sel.wl !== undefined) {
+      // 벽걸이: 좌우는 화면 방향에 맞춰 열을, 위아래는 행을 바꾼다
+      tryPlace(selected, { x: sel.x + dx * wallRightSign(sel.wl, view), z: sel.z - dz });
+      return;
+    }
     const [rx, rz] = rotateDir([dx, dz], view);
     tryPlace(selected, { x: sel.x + rx, z: sel.z + rz });
   }
@@ -151,7 +196,7 @@ export function HouseView({
   function addItem(kind: string) {
     if (house.items.length >= MAX_ITEMS) return toast(`가구는 ${MAX_ITEMS}개까지 놓을 수 있어요.`, "error");
     if (house.items.filter((p) => p.k === kind).length >= MAX_PER_KIND) return toast(`같은 가구는 ${MAX_PER_KIND}개까지예요.`, "error");
-    const spot = findFreeSpot(house.items, kind);
+    const spot = findFreeSpot(house.items, kind, [...visibleWallsFor(view), ...[0, 1, 2, 3].filter((w) => !visibleWallsFor(view).includes(w))]);
     if (!spot) return toast("빈 자리가 없어요. 가구를 조금 치워 보세요.", "error");
     setHouse((h) => ({ ...h, items: [...h.items, spot] }));
     setSelected(house.items.length);
@@ -219,7 +264,7 @@ export function HouseView({
       <section className="space-card relative overflow-hidden" aria-label="2.5D 집">
         <div className="relative aspect-[4/3] w-full touch-none select-none sm:aspect-[16/10]">
           {supported ? (
-            <HouseScene house={house} view={view} owner={snapshot ? null : ownerPerson} visitors={visitors} editable={editing} selected={selected} onSelect={setSelected} onMove={onMove} label={label} />
+            <HouseScene house={house} view={view} people={placedPeople} editable={editing} selected={selected} onSelect={setSelected} onMove={onMove} onWalk={canWalk && !editing ? walk : undefined} label={label} />
           ) : (
             <p className="flex size-full items-center justify-center p-6 text-center text-body text-fg-muted">이 기기에서는 2.5D 집을 볼 수 없어요. (WebGL 미지원)</p>
           )}
@@ -240,6 +285,35 @@ export function HouseView({
             지금 {visitors.length}명이 놀러 와 있어요
           </p>
         )}
+        {canWalk && !editing && (
+          <div className="absolute bottom-3 left-3 flex items-end gap-2">
+            <div className="grid grid-cols-3 gap-0.5 rounded-lg bg-surface/90 p-1 shadow-1 backdrop-blur" role="group" aria-label="내 미니미 걷기">
+              <span />
+              <IconButton size="sm" label="위로 걷기" onClick={() => step(0, -1)}><ArrowUp className="size-4" /></IconButton>
+              <span />
+              <IconButton size="sm" label="왼쪽으로 걷기" onClick={() => step(-1, 0)}><ArrowLeft className="size-4" /></IconButton>
+              <span className="flex items-center justify-center text-[14px]" aria-hidden>👣</span>
+              <IconButton size="sm" label="오른쪽으로 걷기" onClick={() => step(1, 0)}><ArrowRight className="size-4" /></IconButton>
+              <span />
+              <IconButton size="sm" label="아래로 걷기" onClick={() => step(0, 1)}><ArrowDown className="size-4" /></IconButton>
+              <span />
+            </div>
+            <p className="pointer-events-none hidden rounded-full bg-surface/90 px-3 py-1 text-label font-semibold text-fg-muted shadow-1 sm:block">바닥을 눌러도 걸어가요</p>
+          </div>
+        )}
+        {/* 화면 읽기용: 집 안에 누가 어디 있는지 */}
+        {!snapshot && (
+          <ul className="sr-only" aria-label="집 안에 있는 사람" aria-live="polite">
+            {placedPeople.map((p) => (
+              <li key={p.id}>
+                {p.isHost ? "집주인 " : ""}
+                {p.name}
+                {p.isMe ? " (나)" : ""}
+                {p.pos ? ` — ${describeSpot(p.pos)}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
         {isOwner && !editing && !snapshot && (
           <Button className="absolute right-3 bottom-3 shadow-2" icon={<Paintbrush className="size-4" />} onClick={() => setEditing(true)}>
             집 꾸미기
@@ -256,7 +330,7 @@ export function HouseView({
               <IconButton size="sm" label="왼쪽으로" onClick={() => nudge(-1, 0)}><ArrowLeft className="size-4" /></IconButton>
               <IconButton size="sm" label="오른쪽으로" onClick={() => nudge(1, 0)}><ArrowRight className="size-4" /></IconButton>
             </span>
-            <IconButton size="sm" label="돌리기 (R)" onClick={rotateSel}><RotateCw className="size-4" /></IconButton>
+            {!isWallItem(selDef) && <IconButton size="sm" label="돌리기 (R)" onClick={rotateSel}><RotateCw className="size-4" /></IconButton>}
             <IconButton size="sm" label="치우기 (Delete)" onClick={removeSel}><Trash2 className="size-4" /></IconButton>
             {selDef.tint && (
               <span className="flex w-full gap-1 pt-1" role="radiogroup" aria-label="색">
@@ -289,7 +363,7 @@ export function HouseView({
           </div>
           <p className="text-label text-fg-subtle">가구를 눌러 고른 뒤 끌어서 옮겨요. 방향키로 한 칸씩, R로 돌리기, Delete로 치우기.</p>
           <div className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1" role="tablist" aria-label="분류">
-            {(["living", "bed", "study", "kitchen", "deco", "room"] as const).map((k) => (
+            {(["living", "bed", "study", "kitchen", "deco", "wall", "room"] as const).map((k) => (
               <button
                 key={k}
                 type="button"

@@ -25,7 +25,7 @@ function open() {
   source = new EventSource("/api/events");
   source.onopen = () => setConnected(true);
   source.onerror = () => setConnected(false);
-  for (const type of ["dm", "notification"] as const) {
+  for (const type of ["dm", "notification", "presence"] as const) {
     source.addEventListener(type, (msg) => {
       try {
         const event = JSON.parse((msg as MessageEvent<string>).data) as RealtimeEvent;
@@ -43,12 +43,14 @@ function close() {
   setConnected(false);
 }
 
-export function useRealtime(handler: Handler) {
+/** enabled=false면 연결하지 않는다 (비로그인 화면 등) */
+export function useRealtime(handler: Handler, enabled = true) {
   const ref = useRef(handler);
   useEffect(() => {
     ref.current = handler;
   }, [handler]);
   useEffect(() => {
+    if (!enabled) return;
     const h: Handler = (e) => ref.current(e);
     handlers.add(h);
     users++;
@@ -58,7 +60,7 @@ export function useRealtime(handler: Handler) {
       users--;
       if (users === 0) close();
     };
-  }, []);
+  }, [enabled]);
 }
 
 /** 실시간 연결 여부 (연결되어 있으면 폴링 간격을 늘린다) */

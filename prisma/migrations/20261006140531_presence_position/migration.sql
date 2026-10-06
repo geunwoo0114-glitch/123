@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "SpacePresence" ADD COLUMN     "posX" DOUBLE PRECISION,
+ADD COLUMN     "posZ" DOUBLE PRECISION;

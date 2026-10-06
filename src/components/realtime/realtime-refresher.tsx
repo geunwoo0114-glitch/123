@@ -8,7 +8,9 @@ import { useRealtime } from "./use-realtime";
 export function RealtimeRefresher() {
   const router = useRouter();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useRealtime(() => {
+  useRealtime((e) => {
+    // 집 안 움직임은 화면을 새로 그릴 일이 아니다
+    if (e.type === "presence") return;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => router.refresh(), 400);
   });

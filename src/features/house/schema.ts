@@ -11,20 +11,26 @@ import { josa } from "@/lib/josa";
  * - rug:   러그. 다른 가구 밑에 깔 수 있고 러그끼리만 겹칠 수 없다.
  * - top:   작은 소품. 책상·테이블 같은 '받침(surface)' 위에 올리면 그 위에 놓이고, 아니면 바닥에 놓인다.
  *          소품끼리는 겹칠 수 없고, 받침이 아닌 큰 가구와도 겹칠 수 없다.
+ * - wall:  벽걸이 장식. wl(벽 번호 0~3)의 x열·z행(아래부터)에 건다. 같은 벽의 장식·창문과 겹칠 수 없다.
+ *          벽 번호: 0=북(-z), 1=동(+x), 2=남(+z), 3=서(-x). 열은 벽을 안쪽에서 볼 때 왼쪽부터 센다.
  *
- * 모델: Kenney Furniture Kit (CC0) — public/house/models/*.glb
+ * 모델: Kenney Furniture Kit (CC0) — public/house/models/*.glb (벽걸이 장식은 코드로 그린다)
  */
 
 export const CELL = 0.25;
 export const GRID = 14; // 14칸 × 0.25 = 3.5 (방 한 변)
 export const ROOM_SIZE = GRID * CELL;
 export const WALL_HEIGHT = 1.45;
-export const MAX_ITEMS = 40;
+export const MAX_ITEMS = 48;
+/** 벽 높이 방향 칸 수 */
+export const WALL_ROWS = Math.floor(WALL_HEIGHT / CELL);
+/** 창문 자리 (서쪽 벽, 열 6~10 × 행 1~4) */
+export const WINDOW = { wall: 3, x0: 6, x1: 11, y0: 1, y1: 5 } as const;
 /** 같은 가구를 몇 개까지 놓을 수 있나 (한 번 사면 이만큼) */
 export const MAX_PER_KIND = 4;
 
-export type Layer = "floor" | "rug" | "top";
-export type FurnitureCategory = "bed" | "living" | "study" | "kitchen" | "deco";
+export type Layer = "floor" | "rug" | "top" | "wall";
+export type FurnitureCategory = "bed" | "living" | "study" | "kitchen" | "deco" | "wall";
 
 export type FurnitureDef = {
   kind: string;
@@ -39,8 +45,13 @@ export type FurnitureDef = {
   tint?: string[];
   /** 스스로 빛나는 조명 */
   light?: { y: number; color: string };
+  /** 벽걸이 장식의 크기 (칸) */
+  cells?: { w: number; h: number };
   price: number;
 };
+
+/** 벽걸이 장식은 모델 파일 없이 코드로 그린다. 색(tint)은 그림·천 부분에 쓴다 */
+const W = ["art"];
 
 const T = ["carpet", "carpetDarker"];
 
@@ -87,10 +98,19 @@ export const furniture: FurnitureDef[] = [
   { kind: "plantSmall2", name: "다육이", category: "deco", size: [0.19, 0.28, 0.19], layer: "top", price: 20 },
   { kind: "lampRoundFloor", name: "스탠드 조명", category: "deco", size: [0.15, 0.86, 0.18], layer: "floor", light: { y: 0.8, color: "#ffd59a" }, price: 0 },
   { kind: "cardboardBoxOpen", name: "이삿짐 상자", category: "deco", size: [0.37, 0.28, 0.21], layer: "floor", price: 10 },
+  // 벽 장식
+  { kind: "wallFrameSmall", name: "작은 액자", category: "wall", size: [0.22, 0.22, 0.03], cells: { w: 1, h: 1 }, layer: "wall", tint: W, price: 0 },
+  { kind: "wallFrameLarge", name: "큰 액자", category: "wall", size: [0.45, 0.45, 0.03], cells: { w: 2, h: 2 }, layer: "wall", tint: W, price: 0 },
+  { kind: "wallShelf", name: "벽 선반", category: "wall", size: [0.7, 0.2, 0.16], cells: { w: 3, h: 1 }, layer: "wall", tint: W, price: 0 },
+  { kind: "wallClock", name: "벽시계", category: "wall", size: [0.22, 0.22, 0.04], cells: { w: 1, h: 1 }, layer: "wall", tint: W, price: 30 },
+  { kind: "wallPoster", name: "포스터", category: "wall", size: [0.42, 0.62, 0.01], cells: { w: 2, h: 3 }, layer: "wall", tint: W, price: 40 },
+  { kind: "wallMirror", name: "거울", category: "wall", size: [0.42, 0.66, 0.03], cells: { w: 2, h: 3 }, layer: "wall", price: 70 },
+  { kind: "wallGarland", name: "전구 가랜드", category: "wall", size: [1.2, 0.2, 0.02], cells: { w: 5, h: 1 }, layer: "wall", light: { y: 0, color: "#ffe2a8" }, price: 80 },
+  { kind: "wallPlant", name: "걸이 화분", category: "wall", size: [0.22, 0.4, 0.14], cells: { w: 1, h: 2 }, layer: "wall", price: 40 },
 ];
 
 export const furnitureByKind = new Map(furniture.map((f) => [f.kind, f]));
-export const categoryLabels: Record<FurnitureCategory, string> = { bed: "침실", living: "거실", study: "작업", kitchen: "주방·생활", deco: "소품" };
+export const categoryLabels: Record<FurnitureCategory, string> = { bed: "침실", living: "거실", study: "작업", kitchen: "주방·생활", deco: "소품", wall: "벽 장식" };
 
 export const houseItemId = (kind: string) => `house.${kind}`;
 export const isFreeFurniture = (kind: string) => furnitureByKind.get(kind)?.price === 0;
@@ -140,6 +160,8 @@ const placementSchema = z.object({
   z: z.number().int().min(0).max(GRID - 1),
   r: z.number().int().min(0).max(3),
   c: z.number().int().min(0).max(tintColors.length - 1).default(0),
+  /** 벽걸이 장식만: 벽 번호 (이때 z는 행) */
+  wl: z.number().int().min(0).max(3).optional(),
 });
 export type Placement = z.infer<typeof placementSchema>;
 
@@ -166,11 +188,15 @@ export const defaultHouse: HouseConfig = {
     { k: "rugRound", x: 6, z: 7, r: 0, c: 1 },
     { k: "tableCoffee", x: 7, z: 8, r: 0, c: 0 },
     { k: "loungeSofa", x: 6, z: 12, r: 2, c: 2 },
+    { k: "wallFrameLarge", x: 2, z: 2, r: 0, c: 2, wl: 0 },
+    { k: "wallFrameSmall", x: 5, z: 3, r: 0, c: 5, wl: 0 },
+    { k: "wallShelf", x: 9, z: 2, r: 0, c: 0, wl: 0 },
   ],
 };
 
-/** 회전을 반영한 발자국 (칸 수) */
-export function footprint(def: Pick<FurnitureDef, "size">, r: number): { w: number; d: number } {
+/** 회전을 반영한 발자국 (칸 수). 벽걸이 장식은 벽 위의 가로·세로 칸 */
+export function footprint(def: Pick<FurnitureDef, "size" | "cells">, r: number): { w: number; d: number } {
+  if (def.cells) return { w: def.cells.w, d: def.cells.h };
   const w = Math.max(1, Math.ceil(def.size[0] / CELL - 0.15));
   const d = Math.max(1, Math.ceil(def.size[2] / CELL - 0.15));
   return r % 2 === 0 ? { w, d } : { w: d, d: w };
@@ -183,10 +209,15 @@ function rectOf(p: Placement, def: FurnitureDef): Rect {
 }
 const overlaps = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.z0 < b.z1 && b.z0 < a.z1;
 
+export const isWallItem = (def: FurnitureDef | undefined) => def?.layer === "wall";
+
 export function inBounds(p: Placement, def: FurnitureDef) {
   const r = rectOf(p, def);
-  return r.x0 >= 0 && r.z0 >= 0 && r.x1 <= GRID && r.z1 <= GRID;
+  if (isWallItem(def)) return p.wl !== undefined && r.x0 >= 0 && r.z0 >= 0 && r.x1 <= GRID && r.z1 <= WALL_ROWS;
+  return p.wl === undefined && r.x0 >= 0 && r.z0 >= 0 && r.x1 <= GRID && r.z1 <= GRID;
 }
+
+const windowRect: Rect = { x0: WINDOW.x0, z0: WINDOW.y0, x1: WINDOW.x1, z1: WINDOW.y1 };
 
 /** 소품이 올라갈 받침 (겹치는 받침 중 가장 높은 것) */
 export function supportOf(items: Placement[], index: number): FurnitureDef | null {
@@ -198,7 +229,7 @@ export function supportOf(items: Placement[], index: number): FurnitureDef | nul
   items.forEach((o, i) => {
     if (i === index) return;
     const od = furnitureByKind.get(o.k);
-    if (!od?.surface || !overlaps(me, rectOf(o, od))) return;
+    if (!od?.surface || isWallItem(od) || !overlaps(me, rectOf(o, od))) return;
     if (!best || od.size[1] > best.size[1]) best = od;
   });
   return best;
@@ -213,10 +244,14 @@ export function collides(items: Placement[], index: number): boolean {
   const def = furnitureByKind.get(p.k);
   if (!def) return true;
   const me = rectOf(p, def);
+  if (isWallItem(def)) {
+    if (p.wl === WINDOW.wall && overlaps(me, windowRect)) return true;
+    return items.some((o, i) => i !== index && o.wl === p.wl && isWallItem(furnitureByKind.get(o.k)) && overlaps(me, rectOf(o, furnitureByKind.get(o.k)!)));
+  }
   return items.some((o, i) => {
     if (i === index) return false;
     const od = furnitureByKind.get(o.k);
-    if (!od || !overlaps(me, rectOf(o, od))) return false;
+    if (!od || isWallItem(od) || !overlaps(me, rectOf(o, od))) return false;
     if (def.layer === "rug" || od.layer === "rug") return def.layer === od.layer;
     if (def.layer === "top" && od.layer === "top") return true;
     // 소품은 받침 위에만 겹칠 수 있다
@@ -238,7 +273,7 @@ export function validateHouse(h: HouseConfig, owned: Set<string>): string | null
     const n = (counts.get(p.k) ?? 0) + 1;
     if (n > MAX_PER_KIND) return `${josa(def.name, "은", "는")} ${MAX_PER_KIND}개까지 놓을 수 있어요.`;
     counts.set(p.k, n);
-    if (!inBounds(p, def)) return `${josa(def.name, "이", "가")} 방 밖으로 나갔어요.`;
+    if (!inBounds(p, def)) return isWallItem(def) ? `${josa(def.name, "이", "가")} 벽 밖으로 나갔어요.` : `${josa(def.name, "이", "가")} 방 밖으로 나갔어요.`;
     if (collides(h.items, i)) return `${josa(def.name, "이", "가")} 다른 가구와 겹쳐요.`;
   }
   return null;
@@ -252,10 +287,21 @@ export function parseHouse(raw: unknown): HouseConfig {
   return { ...r.data, items: r.data.items.filter((p) => furnitureByKind.has(p.k)) };
 }
 
-/** 빈 자리 찾기 (새 가구를 놓을 때) */
-export function findFreeSpot(items: Placement[], kind: string): Placement | null {
+/** 빈 자리 찾기 (새 가구를 놓을 때). 벽걸이는 walls 순서대로, 눈높이부터 찾는다 */
+export function findFreeSpot(items: Placement[], kind: string, walls: number[] = [0, 3, 1, 2]): Placement | null {
   const def = furnitureByKind.get(kind);
   if (!def) return null;
+  if (isWallItem(def)) {
+    const rows = [2, 3, 1, 0, 4];
+    for (const wl of walls)
+      for (const z of rows)
+        for (let x = 0; x < GRID; x++) {
+          const p: Placement = { k: kind, x, z, r: 0, c: 0, wl };
+          const next = [...items, p];
+          if (inBounds(p, def) && !collides(next, next.length - 1)) return p;
+        }
+    return null;
+  }
   for (let z = 0; z < GRID; z++)
     for (let x = 0; x < GRID; x++) {
       const p: Placement = { k: kind, x, z, r: 0, c: 0 };
@@ -263,4 +309,71 @@ export function findFreeSpot(items: Placement[], kind: string): Placement | null
       if (inBounds(p, def) && !collides(next, next.length - 1)) return p;
     }
   return null;
+}
+
+/* ───────── 사람이 서고 걷는 자리 ───────── */
+
+const HALF = ROOM_SIZE / 2;
+
+/** 큰 가구가 차지한 칸 (러그·벽걸이 제외) */
+export function blockedCells(items: Placement[]) {
+  const taken = new Set<string>();
+  items.forEach((p) => {
+    const def = furnitureByKind.get(p.k);
+    if (!def || def.layer === "rug" || isWallItem(def)) return;
+    const f = footprint(def, p.r);
+    for (let dx = 0; dx < f.w; dx++) for (let dz = 0; dz < f.d; dz++) taken.add(`${p.x + dx},${p.z + dz}`);
+  });
+  return taken;
+}
+
+/** 누른 자리에서 가장 가까운 빈 칸의 가운데 (가구 위로는 걸어가지 않는다) */
+export function nearestWalkable(items: Placement[], wx: number, wz: number): [number, number] | null {
+  const taken = blockedCells(items);
+  const cx = Math.max(0, Math.min(GRID - 1, Math.floor((wx + HALF) / CELL)));
+  const cz = Math.max(0, Math.min(GRID - 1, Math.floor((wz + HALF) / CELL)));
+  let best: [number, number] | null = null;
+  let bestD = Infinity;
+  for (let z = 0; z < GRID; z++)
+    for (let x = 0; x < GRID; x++) {
+      if (taken.has(`${x},${z}`)) continue;
+      const d = (x - cx) ** 2 + (z - cz) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = [-HALF + (x + 0.5) * CELL, -HALF + (z + 0.5) * CELL];
+      }
+    }
+  return best;
+}
+
+/** 사람이 설 자리: 가구가 없는 칸 중 방 앞쪽 가운데에서 가까운 곳부터 */
+export function standingSpots(items: Placement[], count: number): [number, number][] {
+  const taken = new Set<string>();
+  items.forEach((p) => {
+    const def = furnitureByKind.get(p.k);
+    if (!def || def.layer === "rug" || isWallItem(def)) return;
+    const f = footprint(def, p.r);
+    for (let dx = -1; dx <= f.w; dx++) for (let dz = -1; dz <= f.d; dz++) taken.add(`${p.x + dx},${p.z + dz}`);
+  });
+  const cells: [number, number][] = [];
+  for (let z = 1; z < GRID - 1; z += 2) for (let x = 1; x < GRID - 1; x += 2) if (!taken.has(`${x},${z}`) && !taken.has(`${x + 1},${z + 1}`)) cells.push([x, z]);
+  const target = [GRID / 2, GRID * 0.7];
+  cells.sort((a, b) => Math.hypot(a[0] - target[0], a[1] - target[1]) - Math.hypot(b[0] - target[0], b[1] - target[1]));
+  const out: [number, number][] = [];
+  for (const [x, z] of cells) {
+    if (out.length >= count) break;
+    const wx = -HALF + (x + 1) * CELL;
+    const wz = -HALF + (z + 1) * CELL;
+    if (out.some(([ox, oz]) => Math.hypot(ox - wx, oz - wz) < 0.55)) continue;
+    out.push([wx, wz]);
+  }
+  return out;
+}
+
+/** 사람 자리 → 화면 읽기용 위치 설명 (기본 보기 기준) */
+export function describeSpot([x, z]: [number, number]) {
+  const third = ROOM_SIZE / 6;
+  const row = z < -third ? "안쪽" : z > third ? "앞쪽" : "가운데";
+  const col = x < -third ? "왼편" : x > third ? "오른편" : "";
+  return col ? `방 ${row} ${col}` : `방 ${row}`;
 }

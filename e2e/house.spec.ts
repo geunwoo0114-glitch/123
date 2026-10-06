@@ -15,7 +15,7 @@ test("2.5D 집: 가구를 사서 놓고 옮겨 저장하면, 놀러 온 친구�
   await po.goto(`/@${owner}`);
   await po.getByRole("link", { name: "2.5D 집 놀러가기" }).click();
   await expect(po).toHaveURL(new RegExp(`/@${owner}/house$`));
-  await expect(po.getByRole("img", { name: /집주인님의 2.5D 집. 가구 9개/ }).or(po.getByText("이 기기에서는 2.5D 집을 볼 수 없어요. (WebGL 미지원)"))).toBeVisible({ timeout: 30_000 });
+  await expect(po.getByRole("img", { name: /집주인님의 2.5D 집. 가구 12개/ }).or(po.getByText("이 기기에서는 2.5D 집을 볼 수 없어요. (WebGL 미지원)"))).toBeVisible({ timeout: 30_000 });
 
   await po.getByRole("button", { name: "집 꾸미기" }).click();
   const panel = po.getByRole("complementary", { name: "집 꾸미기" });
@@ -28,7 +28,19 @@ test("2.5D 집: 가구를 사서 놓고 옮겨 저장하면, 놀러 온 친구�
   await toolbar.getByRole("button", { name: "돌리기 (R)" }).click();
 
   // 소파 색 바꾸기: 놓인 가구 목록에서 고른다
-  await panel.getByText(/놓인 가구 10\/40/).click();
+  // 벽 장식: 벽시계(30)를 사서 걸고 한 칸 올린다
+  await panel.getByRole("tab", { name: "벽 장식" }).click();
+  await panel.getByRole("button", { name: "벽시계 사기 (30밤톨)" }).click();
+  await expect(po.getByText(/벽시계를 샀어요!/)).toBeVisible();
+  const clock = po.getByRole("toolbar", { name: "벽시계 조작" });
+  await expect(clock).toBeVisible();
+  // 벽걸이는 돌리기 버튼이 없다
+  await expect(clock.getByRole("button", { name: "돌리기 (R)" })).toHaveCount(0);
+  // 방향키로 한 칸 올린다 (모바일은 화살표 버튼 대신 끌어서 옮긴다)
+  await po.keyboard.press("ArrowUp");
+  await panel.getByRole("tab", { name: "거실" }).click();
+
+  await panel.getByText(/놓인 가구 14\/48/).click();
   await panel.getByRole("button", { name: "2인 소파", exact: true }).click();
   await po.getByRole("toolbar", { name: "2인 소파 조작" }).getByRole("radio", { name: "민트" }).click();
 
@@ -42,9 +54,9 @@ test("2.5D 집: 가구를 사서 놓고 옮겨 저장하면, 놀러 온 친구�
   await expect(po.getByText("집을 새로 꾸몄어요! 🏠")).toBeVisible();
   await expect(po.getByRole("button", { name: "집 꾸미기" })).toBeVisible();
 
-  // 새로고침해도 유지 (가구 10개)
+  // 새로고침해도 유지 (가구 14개)
   await po.reload();
-  await expect(po.getByRole("img", { name: /가구 10개/ }).or(po.getByText(/WebGL 미지원/))).toBeVisible({ timeout: 30_000 });
+  await expect(po.getByRole("img", { name: /가구 14개/ }).or(po.getByText(/WebGL 미지원/))).toBeVisible({ timeout: 30_000 });
 
   // 다른 사람이 놀러 오면 꾸미기 버튼은 없다
   const cg = await browser.newContext();
@@ -52,7 +64,7 @@ test("2.5D 집: 가구를 사서 놓고 옮겨 저장하면, 놀러 온 친구�
   await signup(pg, guest, "손님");
   await completeOnboarding(pg);
   await pg.goto(`/@${owner}/house`);
-  await expect(pg.getByRole("img", { name: /집주인님의 2.5D 집. 가구 10개/ }).or(pg.getByText(/WebGL 미지원/))).toBeVisible({ timeout: 30_000 });
+  await expect(pg.getByRole("img", { name: /집주인님의 2.5D 집. 가구 14개/ }).or(pg.getByText(/WebGL 미지원/))).toBeVisible({ timeout: 30_000 });
   await expect(pg.getByRole("button", { name: "집 꾸미기" })).toHaveCount(0);
 
   await co.close();

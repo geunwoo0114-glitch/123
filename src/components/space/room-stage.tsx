@@ -8,7 +8,7 @@ import { PresenceOverlay, usePresence } from "@/components/space/presence";
  * 2D 미니룸 무대. 함께 있는 사람을 방 바닥에 보여 주고, 2.5D 집으로 들어가는 문을 단다.
  */
 export function RoomStage({ houseHref, presenceFor = null, children }: { houseHref?: string; presenceFor?: string | null; children: React.ReactNode }) {
-  const people = usePresence(presenceFor);
+  const { people } = usePresence(presenceFor);
   return (
     <div className="relative">
       {children}

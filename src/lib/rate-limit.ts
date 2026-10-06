@@ -38,7 +38,8 @@ export const limits = {
   follow: [60, 60 * 60],
   message: [60, 10 * 60],
   gift: [20, 60 * 60],
-  presence: [40, 60],
+  // 15초 신호 + 집 안에서 걷기(클라이언트에서 0.3초 간격으로 묶어 보냄)
+  presence: [240, 60],
 } as const satisfies Record<string, readonly [number, number]>;
 
 /** 테스트/스테이징에서 한도를 늘리기 위한 배수 (기본 1, production에서는 설정하지 않는다) */

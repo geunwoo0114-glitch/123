@@ -13,7 +13,9 @@ const CHANNEL = "darak_events";
 
 export type RealtimeEvent =
   | { type: "dm"; from: { id: string; username: string }; message: { id: string; body: string; createdAt: string } }
-  | { type: "notification" };
+  | { type: "notification" }
+  /** 2.5D 집 안의 움직임: 들어옴(join) / 이동(move) / 나감(leave) */
+  | { type: "presence"; hostId: string; kind: "join" | "move" | "leave"; id: string; x?: number; z?: number };
 
 type Envelope = { to: string; event: RealtimeEvent };
 type Listener = (event: RealtimeEvent) => void;

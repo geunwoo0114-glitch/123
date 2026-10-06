@@ -706,6 +706,9 @@ model SpacePresence {
   host       User     @relation("PresenceHost", fields: [hostId], references: [id], onDelete: Cascade)
   user       User     @relation("PresenceVisitor", fields: [userId], references: [id], onDelete: Cascade)
   lastSeenAt DateTime @default(now())
+  /// 2.5D 집 안에서 서 있는 자리 (월드 좌표, 없으면 빈자리에 자동 배치)
+  posX       Float?
+  posZ       Float?
 
   @@id([hostId, userId])
   @@index([hostId, lastSeenAt])

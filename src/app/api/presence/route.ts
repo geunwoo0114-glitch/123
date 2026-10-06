@@ -6,7 +6,13 @@ import { leavePresence, listPresent, prunePresence, touchPresence } from "@/feat
 
 export const dynamic = "force-dynamic";
 
-const bodySchema = z.object({ username: z.string().min(1).max(40), leave: z.boolean().optional() });
+const bodySchema = z.object({
+  username: z.string().min(1).max(40),
+  leave: z.boolean().optional(),
+  /** 2.5D 집 안에서 옮겨 간 자리 */
+  x: z.number().finite().optional(),
+  z: z.number().finite().optional(),
+});
 
 /** 다른 사이트에서 보낸 요청(sendBeacon 포함)은 받지 않는다 */
 function sameOrigin(req: Request) {
@@ -47,8 +53,9 @@ export async function POST(req: Request) {
   }
   if (!(await checkLimit("presence", me.id))) return Response.json({ error: "rate_limited" }, { status: 429 });
 
-  const visible = await touchPresence(hostId, me.id);
+  const { x, z } = parsed.data;
+  const visible = await touchPresence(hostId, me.id, x !== undefined && z !== undefined ? { x, z } : undefined);
   if (Math.random() < 0.02) await prunePresence();
   const people = await listPresent(hostId, me.id);
-  return Response.json({ visible, people }, { headers: { "Cache-Control": "no-store" } });
+  return Response.json({ visible, hostId, people }, { headers: { "Cache-Control": "no-store" } });
 }

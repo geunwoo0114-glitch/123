@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collides, defaultHouse, elevationOf, findFreeSpot, footprint, furniture, furnitureByKind, parseHouse, validateHouse, type HouseConfig } from "./schema";
+import { WALL_ROWS, WINDOW, collides, defaultHouse, elevationOf, findFreeSpot, footprint, furniture, furnitureByKind, inBounds, parseHouse, validateHouse, type HouseConfig } from "./schema";
 
 const free = new Set<string>();
 
@@ -58,6 +58,46 @@ describe("2.5D 집", () => {
 
   it("빈 자리를 찾아 겹치지 않게 놓는다", () => {
     const spot = findFreeSpot(defaultHouse.items, "bookcaseOpen")!;
+    const next = [...defaultHouse.items, spot];
+    expect(collides(next, next.length - 1)).toBe(false);
+  });
+});
+
+describe("2.5D 집 벽걸이", () => {
+  it("벽걸이는 벽 번호가 있어야 하고, 벽 안에만 걸 수 있다", () => {
+    const def = furnitureByKind.get("wallPoster")!;
+    expect(inBounds({ k: "wallPoster", x: 0, z: 0, r: 0, c: 0 }, def)).toBe(false);
+    expect(inBounds({ k: "wallPoster", x: 0, z: 0, r: 0, c: 0, wl: 0 }, def)).toBe(true);
+    // 포스터는 3칸 높이라 위쪽 끝에는 못 건다
+    expect(inBounds({ k: "wallPoster", x: 0, z: WALL_ROWS - 2, r: 0, c: 0, wl: 0 }, def)).toBe(false);
+    // 바닥 가구에는 벽 번호를 붙일 수 없다
+    expect(inBounds({ k: "desk", x: 0, z: 0, r: 0, c: 0, wl: 1 }, furnitureByKind.get("desk")!)).toBe(false);
+  });
+
+  it("같은 벽의 장식끼리, 그리고 창문과는 겹칠 수 없다", () => {
+    const items = [
+      { k: "wallFrameLarge", x: 0, z: 1, r: 0, c: 0, wl: 0 },
+      { k: "wallFrameSmall", x: 1, z: 2, r: 0, c: 0, wl: 0 },
+    ];
+    expect(collides(items, 1)).toBe(true);
+    // 다른 벽이면 괜찮다
+    expect(collides([items[0], { ...items[1], wl: 1 }], 1)).toBe(false);
+    // 창문 자리
+    expect(collides([{ k: "wallClock", x: WINDOW.x0, z: WINDOW.y0, r: 0, c: 0, wl: WINDOW.wall }], 0)).toBe(true);
+  });
+
+  it("벽걸이는 바닥 가구와는 겹침을 따지지 않는다", () => {
+    const items = [
+      { k: "desk", x: 0, z: 0, r: 0, c: 0 },
+      { k: "wallShelf", x: 0, z: 0, r: 0, c: 0, wl: 0 },
+    ];
+    expect(collides(items, 0)).toBe(false);
+    expect(collides(items, 1)).toBe(false);
+  });
+
+  it("빈 벽 자리를 고른 벽 순서대로 찾는다", () => {
+    const spot = findFreeSpot(defaultHouse.items, "wallMirror", [1, 0])!;
+    expect(spot.wl).toBe(1);
     const next = [...defaultHouse.items, spot];
     expect(collides(next, next.length - 1)).toBe(false);
   });
