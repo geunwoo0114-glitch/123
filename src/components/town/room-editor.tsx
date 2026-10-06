@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { MiniRoom } from "@/components/space/mini-room";
+import { RoomViewer } from "@/components/space/room3d/room-viewer";
 
 /** 미니룸 꾸미기: 자리마다 가진 아이템을 골라 끼운다 */
 export function RoomEditor({ initial, owned, minimi, name, themeId, username }: { initial: RoomConfig; owned: string[]; minimi: AvatarConfig; name: string; themeId: string; username: string }) {
@@ -37,7 +38,9 @@ export function RoomEditor({ initial, owned, minimi, name, themeId, username }: 
   return (
     <div style={themeStyle(themeId) as React.CSSProperties} className="space-scope flex flex-col gap-5">
       <div className="space-card mx-auto w-full max-w-3xl overflow-hidden">
-        <MiniRoom room={room} minimi={minimi} name={name} />
+        <RoomViewer room={room} minimi={minimi} name={name}>
+          <MiniRoom room={room} minimi={minimi} name={name} />
+        </RoomViewer>
         <div className="flex flex-wrap items-center justify-between gap-2 p-3">
           <p className="text-caption text-fg-muted">잠긴 아이템은 상점의 &lsquo;미니룸&rsquo;에서 살 수 있어요.</p>
           <div className="flex gap-2">

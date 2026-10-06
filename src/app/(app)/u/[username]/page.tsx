@@ -17,6 +17,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Tag } from "@/components/ui/misc";
 import { PostCard } from "@/components/content/post-card";
 import { MiniRoom } from "@/components/space/mini-room";
+import { RoomViewer } from "@/components/space/room3d/room-viewer";
 import { DiaryItem, FriendFaces, GuestNote, MusicWidget, PhotoTiles, Widget, WidgetEmpty } from "@/components/space/widgets";
 
 export default async function SpaceHome({ params }: PageProps<"/u/[username]">) {
@@ -47,7 +48,9 @@ export default async function SpaceHome({ params }: PageProps<"/u/[username]">) 
   const widgets: Record<string, React.ReactNode> = {
     intro: (
       <section key="intro" className="space-card overflow-hidden xl:col-span-2" aria-label="미니룸">
-        <MiniRoom room={space.room} minimi={owner.minimi} name={owner.displayName} statusMessage={owner.statusMessage ? `${owner.statusEmoji} ${owner.statusMessage}`.trim() : undefined} />
+        <RoomViewer room={space.room} minimi={owner.minimi} name={owner.displayName}>
+          <MiniRoom room={space.room} minimi={owner.minimi} name={owner.displayName} statusMessage={owner.statusMessage ? `${owner.statusEmoji} ${owner.statusMessage}`.trim() : undefined} />
+        </RoomViewer>
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
           {owner.interests.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">

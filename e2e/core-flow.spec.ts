@@ -108,6 +108,12 @@ test("미니룸: 벽지를 사서 방에 붙이면 내 공간에 보인다", asy
 
   // 사지 않은 아이템(밤하늘 벽지)은 고를 수 없다
   await expect(page.getByRole("button", { name: "밤하늘 (상점에서 구매 필요)" })).toBeDisabled();
+
+  // 내 공간에서 3D로 보기 (WebGL이 없는 환경이면 안내가 나온다)
+  await page.goto(`/@${host}`);
+  await page.getByRole("button", { name: "3D로 보기" }).click();
+  await expect(page.locator("canvas").or(page.getByText("이 기기에서는 3D를 볼 수 없어요."))).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "2D로 보기" }).click().catch(() => undefined);
 });
 
 test("사진 권한: 친구 공개 글의 사진은 비로그인 사용자가 주소를 알아도 볼 수 없다", async ({ page, request }) => {
