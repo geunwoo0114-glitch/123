@@ -14,26 +14,17 @@ services:
       interval: 5s
       retries: 10
 
-  # 배포 전에 마이그레이션을 한 번 실행하고 끝난다
-  migrate:
-    build: { context: ., target: build }
-    command: npx prisma migrate deploy
-    environment:
-      DATABASE_URL: postgresql://darak:${POSTGRES_PASSWORD:-darak}@db:5432/darak?schema=public
-    depends_on:
-      db: { condition: service_healthy }
-
   app:
+    # 시작할 때 DB 마이그레이션을 자동으로 적용한다 (scripts/docker-entrypoint.sh)
     build:
       context: .
       target: runner
-      args:
-        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
     ports:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://darak:${POSTGRES_PASSWORD:-darak}@db:5432/darak?schema=public
       APP_URL: ${APP_URL:-http://localhost:3000}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:hello@darak.app}
       SMTP_URL: ${SMTP_URL:-}
@@ -41,7 +32,7 @@ services:
     volumes:
       - uploads:/data/uploads
     depends_on:
-      migrate: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
     restart: unless-stopped
 
 volumes:

@@ -49,3 +49,6 @@ export const appConfig = {
     friends: 40,
   },
 } as const;
+
+/** 서비스 공개 주소. APP_URL이 없으면 호스팅이 알려 주는 주소(Render)를 쓴다 */
+export const appUrl = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";

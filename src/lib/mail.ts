@@ -3,6 +3,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { brand } from "@/config/brand";
+import { appUrl as baseUrl } from "@/config/app";
 
 /**
  * 메일 발송. SMTP_URL이 있으면 실제로 보내고,
@@ -37,5 +38,5 @@ export async function sendMail(mail: Mail): Promise<void> {
 }
 
 export function appUrl(path: string) {
-  return new URL(path, process.env.APP_URL ?? "http://localhost:3000").toString();
+  return new URL(path, baseUrl).toString();
 }

@@ -71,16 +71,37 @@ E2E가 직접 띄우는 테스트 서버는 같은 IP에서 로그인을 반복�
 
 ## 배포
 
-**Docker (권장)** — Next.js standalone 이미지 + Postgres + 마이그레이션을 한 번에:
+### 가장 쉬운 방법: Render (클릭 몇 번으로 공개 주소 만들기)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/geunwoo0114-glitch/123)
+
+1. [render.com](https://render.com)에 GitHub 계정으로 가입하고, 이 저장소 접근을 허용합니다.
+2. 위 버튼(또는 **New → Blueprint** → 이 저장소)을 누르면 `render.yaml`대로 **웹 서버 + PostgreSQL + 사진 디스크**가 만들어집니다.
+3. 비밀 값 입력 화면이 나오면:
+   - `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`: 컴퓨터에서 `npx web-push generate-vapid-keys`로 만든 값 (비우면 웹 푸시만 꺼짐)
+   - `SMTP_URL`: 메일 서버 주소 (비우면 이메일 인증·비밀번호 재설정 메일만 안 감)
+   - `APP_URL`: 처음엔 비워 두세요. Render 주소(`https://darak-xxxx.onrender.com`)를 자동으로 씁니다.
+4. 배포가 끝나면(약 5~10분) 주소로 접속합니다. **DB 마이그레이션은 컨테이너가 시작할 때 자동으로 적용**됩니다.
+5. 첫 운영자 계정: 가입 후 Render의 PostgreSQL **Shell**에서 `UPDATE "User" SET role='ADMIN' WHERE username='내아이디';`
+
+비용(2026년 기준 대략): 웹 서버 Starter 약 $7/월 + PostgreSQL Basic 약 $6/월. 서버는 싱가포르 지역(한국에서 가장 가까움).
+
+**내 도메인 연결** — 도메인을 산 뒤 Render 서비스의 **Settings → Custom Domains**에 추가하고, 안내대로 DNS(CNAME)를 설정합니다. HTTPS 인증서는 자동입니다. 그다음 `APP_URL`을 새 주소로 바꿉니다.
+
+**앱으로 쓰기** — 공개 주소가 생기면 휴대폰에서 바로 **홈 화면에 추가**(PWA)해 앱처럼 쓸 수 있습니다(웹 푸시 포함). 구글 플레이 등록은 같은 주소를 감싸는 TWA(Bubblewrap)로, 앱스토어는 Capacitor로 이어서 만들 수 있습니다.
+
+### Docker (내 서버·다른 호스팅)
+
+Next.js standalone 이미지 + Postgres. 컨테이너가 시작할 때 `prisma migrate deploy`를 자동으로 실행합니다(`RUN_MIGRATIONS=0`이면 건너뜀).
 
 ```bash
 cp .env.example .env     # APP_URL, POSTGRES_PASSWORD, VAPID 키, SMTP_URL 등 설정
 docker compose up --build -d
 ```
 
-- `migrate` 서비스가 `prisma migrate deploy`를 실행한 뒤 `app`이 뜹니다.
-- 업로드 이미지는 `uploads` 볼륨(`/data/uploads`)에 저장됩니다.
+- 업로드 이미지는 `uploads` 볼륨(`/data/uploads`)에 저장됩니다. 여러 서버로 늘릴 때는 `STORAGE_DRIVER=s3`(S3·Cloudflare R2)로 바꿉니다.
 - 헬스체크: `GET /api/health` (DB 연결 확인).
+- 웹 푸시 공개 키는 실행 시점에 읽으므로 키를 바꿔도 다시 빌드할 필요가 없습니다.
 
 **직접 실행** — `npm run build` 후 `npm start`(standalone 서버). 마이그레이션은 `npm run db:deploy`.
 

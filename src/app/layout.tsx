@@ -4,8 +4,8 @@ import "./globals.css";
 import { brand } from "@/config/brand";
 import { ToastProvider } from "@/components/ui/toast";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
+import { appUrl } from "@/config/app";
 
-const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),

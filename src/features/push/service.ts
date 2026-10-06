@@ -7,12 +7,15 @@ import { brand } from "@/config/brand";
 
 export type PushPayload = { title: string; body: string; url: string; tag?: string };
 
-const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+/** 공개 키는 실행 시점에 읽는다 (예전 이름 NEXT_PUBLIC_…도 지원). 브라우저에는 설정 화면이 props로 넘긴다 */
+const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 const privateKey = process.env.VAPID_PRIVATE_KEY;
 
 /** VAPID 키가 설정된 환경에서만 푸시를 보낸다 (없으면 조용히 비활성화) */
 export const pushEnabled = Boolean(publicKey && privateKey);
-if (pushEnabled) webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@darak.app", publicKey!, privateKey!);
+/** 브라우저 구독에 쓰는 공개 키 (푸시가 꺼져 있으면 빈 문자열) */
+export const vapidPublicKey = pushEnabled ? publicKey : "";
+if (pushEnabled) webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@darak.app", publicKey, privateKey!);
 
 /** 서비스 타임존 기준 밤 11시 ~ 아침 8시 */
 export function isQuietHour(now = new Date()): boolean {

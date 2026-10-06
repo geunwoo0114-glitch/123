@@ -6,12 +6,12 @@ import { sendTestPush, setQuietHours, subscribePush, unsubscribePush } from "@/f
 import { Switch } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { isIOS, isStandalone, pushSupported, registerServiceWorker, urlBase64ToUint8Array, vapidPublicKey } from "@/components/pwa/push";
+import { isIOS, isStandalone, pushSupported, registerServiceWorker, urlBase64ToUint8Array } from "@/components/pwa/push";
 
 type State = "loading" | "unsupported" | "ios-install" | "denied" | "off" | "on";
 
 /** 이 기기에서 푸시 알림 받기 (켜고 끄기 + 밤에는 조용히 + 테스트) */
-export function PushSettings({ quietHours }: { quietHours: boolean }) {
+export function PushSettings({ quietHours, publicKey }: { quietHours: boolean; publicKey: string }) {
   const [state, setState] = useState<State>("loading");
   const [quiet, setQuiet] = useState(quietHours);
   const [pending, start] = useTransition();
@@ -21,7 +21,7 @@ export function PushSettings({ quietHours }: { quietHours: boolean }) {
     let alive = true;
     (async () => {
       let next: State;
-      if (!pushSupported()) next = isIOS() && !isStandalone() ? "ios-install" : "unsupported";
+      if (!pushSupported(publicKey)) next = isIOS() && !isStandalone() ? "ios-install" : "unsupported";
       else if (Notification.permission === "denied") next = "denied";
       else {
         const reg = await registerServiceWorker();
@@ -33,7 +33,7 @@ export function PushSettings({ quietHours }: { quietHours: boolean }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [publicKey]);
 
   function toggle(on: boolean) {
     start(async () => {
@@ -45,7 +45,7 @@ export function PushSettings({ quietHours }: { quietHours: boolean }) {
             setState(permission === "denied" ? "denied" : "off");
             return;
           }
-          const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) });
+          const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
           const res = await subscribePush(JSON.parse(JSON.stringify(sub)));
           toast(res.ok ? (res.message ?? "") : res.error, res.ok ? "success" : "error");
           if (res.ok) setState("on");
