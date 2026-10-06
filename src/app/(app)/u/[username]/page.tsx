@@ -48,7 +48,7 @@ export default async function SpaceHome({ params }: PageProps<"/u/[username]">) 
   const widgets: Record<string, React.ReactNode> = {
     intro: (
       <section key="intro" className="space-card overflow-hidden xl:col-span-2" aria-label="미니룸">
-        <RoomViewer room={space.room} minimi={owner.minimi} name={owner.displayName}>
+        <RoomViewer room={space.room} minimi={owner.minimi} name={owner.displayName} presenceFor={viewerId ? owner.username : null}>
           <MiniRoom room={space.room} minimi={owner.minimi} name={owner.displayName} statusMessage={owner.statusMessage ? `${owner.statusEmoji} ${owner.statusMessage}`.trim() : undefined} />
         </RoomViewer>
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">

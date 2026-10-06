@@ -61,7 +61,7 @@ export function PrivacyForm({ initial }: { initial: State }) {
       </section>
       <section className="space-card divide-y divide-line px-5 py-2">
         <h2 className="py-3 text-title font-bold">방문 흔적</h2>
-        <Switch checked={s.leaveVisitTraces} onChange={set("leaveVisitTraces")} label="다른 공간에 방문 흔적 남기기" description="끄면 내가 놀러 가도 방문자 수에만 집계되고 누군지는 남지 않아요." />
+        <Switch checked={s.leaveVisitTraces} onChange={set("leaveVisitTraces")} label="다른 공간에 방문 흔적 남기기" description="끄면 내가 놀러 가도 방문자 수에만 집계되고, 누군지는 남지 않으며 '지금 함께 있는 사람'에도 보이지 않아요." />
         <Switch checked={s.showVisitorsPublic} onChange={set("showVisitorsPublic")} label="'최근 다녀간 사람'을 방문자에게도 보여주기" description="끄면 나만 볼 수 있어요." />
       </section>
       <section className="space-card divide-y divide-line px-5 py-2">

@@ -140,6 +140,8 @@ model User {
   pushSubscriptions PushSubscription[]
   moderationActions ModerationAction[]
   authTokens        AuthToken[]
+  presencesHosted   SpacePresence[]    @relation("PresenceHost")
+  presences         SpacePresence[]    @relation("PresenceVisitor")
 
   @@index([username(ops: raw("gin_trgm_ops"))], type: Gin, map: "User_username_trgm_idx")
 }
@@ -693,4 +695,16 @@ model DevMail {
   createdAt DateTime @default(now())
 
   @@index([to, createdAt(sort: Desc)])
+}
+
+/// 지금 이 공간을 보고 있는 사람 (하트비트로 갱신, 45초 지나면 나간 것으로 본다)
+model SpacePresence {
+  hostId     String
+  userId     String
+  host       User     @relation("PresenceHost", fields: [hostId], references: [id], onDelete: Cascade)
+  user       User     @relation("PresenceVisitor", fields: [userId], references: [id], onDelete: Cascade)
+  lastSeenAt DateTime @default(now())
+
+  @@id([hostId, userId])
+  @@index([hostId, lastSeenAt])
 }
