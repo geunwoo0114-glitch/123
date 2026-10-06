@@ -45,3 +45,7 @@ next-env.d.ts
 /storage
 /test-results
 /playwright-report
+
+# local backups
+/darak.bundle
+/darak-source.zip
