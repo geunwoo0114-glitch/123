@@ -75,7 +75,7 @@ const rooms = [
 ];
 
 async function main() {
-  await db.user.deleteMany({ where: { username: { in: people.map((p) => p.username) } } });
+  await db.user.deleteMany({ where: { username: { in: [...people.map((p) => p.username), "ops"] } } });
   const pw = hash(PASSWORD);
   const users: Record<string, string> = {};
   for (const [i, p] of people.entries()) {
@@ -221,7 +221,29 @@ async function main() {
   await db.gift.create({ data: { senderId: id("sena"), recipientId: id("minji"), itemId: "glasses:4", price: 40, message: "카페메이트에게 🕶️", createdAt: ago(2) } });
   await db.notification.create({ data: { recipientId: id("minji"), actorId: id("sena"), type: "GIFT", targetId: "glasses:4", dedupeKey: `seed-gift-${Date.now()}`, preview: "안경 No.04 · \"카페메이트에게 🕶️\"" } });
 
-  console.log(`✔ 시드 완료. 데모 로그인: minji / ${PASSWORD}`);
+  // 운영자 계정 + 신고 예시
+  const ops = await db.user.create({
+    data: {
+      email: "ops@demo.darak.app",
+      username: "ops",
+      passwordHash: pw,
+      role: "ADMIN",
+      onboardedAt: new Date(),
+      profile: { create: { displayName: "다락 운영팀", avatar: { hair: 3, body: 9, glasses: 1, gesture: 0, beard: 0, bodyIcon: 0, brows: 0, eyes: 0, lips: 0, nose: 0, bg: 7 } } },
+      space: { create: {} },
+      settings: { create: { discoverable: false } },
+    },
+  });
+  await db.report.createMany({
+    data: [
+      { reporterId: id("minji"), targetType: "POST", targetId: postIds[3], reason: "spam", detail: "같은 글을 계속 올려요" },
+      { reporterId: id("haru"), targetType: "POST", targetId: postIds[3], reason: "spam" },
+      { reporterId: id("sena"), targetType: "USER", targetId: id("jun"), reason: "impersonation", detail: "연예인 사칭 같아요" },
+    ],
+  });
+  void ops;
+
+  console.log(`✔ 시드 완료. 데모 로그인: minji / ${PASSWORD} · 운영자: ops / ${PASSWORD}`);
 }
 
 main()

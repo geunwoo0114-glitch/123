@@ -134,6 +134,7 @@ model User {
   giftsSent         Gift[]             @relation("GiftSender")
   giftsReceived     Gift[]             @relation("GiftRecipient")
   pushSubscriptions PushSubscription[]
+  moderationActions ModerationAction[]
 }
 
 model Session {
@@ -635,4 +636,21 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+/// 운영자 조치 기록 (감사 로그)
+model ModerationAction {
+  id         String       @id @default(cuid())
+  adminId    String
+  admin      User         @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  /// HIDE_CONTENT | SUSPEND_USER | UNSUSPEND_USER | DISMISS
+  action     String
+  targetType ReportTarget
+  targetId   String
+  reportId   String?
+  note       String       @default("")
+  createdAt  DateTime     @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt(sort: Desc)])
 }

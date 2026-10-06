@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Bell, Compass, Home, PenLine, Settings, Users, BookHeart, Images, NotebookPen, LogOut, Gamepad2, Mail } from "lucide-react";
+import { Bell, Compass, Home, PenLine, Settings, Users, BookHeart, Images, NotebookPen, LogOut, Gamepad2, Mail, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
 import { Logo } from "@/components/brand/logo";
@@ -12,7 +12,7 @@ import { logoutAction } from "@/features/users/auth-actions";
 import type { AvatarConfig } from "@/features/avatar/schema";
 import { brand } from "@/config/brand";
 
-type Me = { username: string; displayName: string; avatarKey: string | null; minimi: AvatarConfig | null };
+type Me = { isAdmin?: boolean; username: string; displayName: string; avatarKey: string | null; minimi: AvatarConfig | null };
 
 function useActive() {
   const pathname = usePathname();
@@ -67,6 +67,7 @@ export function SideNav({ me, unread, requests, dms }: { me: Me; unread: number;
     { href: "/notifications", label: "알림", icon: Bell, count: unread },
     { href: "/town", label: brand.townName, icon: Gamepad2 },
     { href: `/@${me.username}`, match: `/u/${me.username}`, label: `내 ${brand.spaceNoun}`, icon: BookHeart },
+    ...(me.isAdmin ? [{ href: "/admin", label: "운영", icon: ShieldCheck }] : []),
   ];
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-surface px-3 py-5 lg:flex">

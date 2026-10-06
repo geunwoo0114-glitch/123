@@ -45,7 +45,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     db.profile.findUnique({ where: { userId: user.id }, select: { avatar: true } }),
     countUnreadConversations(user.id),
   ]);
-  const me = { username: user.username, displayName: user.displayName, avatarKey: user.avatarKey, minimi: parseAvatar(profile?.avatar) };
+  const me = { isAdmin: user.role === "ADMIN", username: user.username, displayName: user.displayName, avatarKey: user.avatarKey, minimi: parseAvatar(profile?.avatar) };
 
   return (
     <div className="lg:flex">
