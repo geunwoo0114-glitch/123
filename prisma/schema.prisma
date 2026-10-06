@@ -197,6 +197,8 @@ model SpaceSettings {
   pinnedPostId  String?
   /// 미니룸 구성 (src/features/room/schema.ts 로 검증된 슬롯 → 아이템 인덱스)
   room          Json?
+  /// 2.5D 집 구성 (src/features/house/schema.ts 로 검증된 벽·바닥·조명 + 가구 배치)
+  house         Json?
   /// BGM: 공식 임베드가 가능한 외부 링크(Spotify/YouTube)만 허용
   musicUrl      String?
   musicTitle    String?

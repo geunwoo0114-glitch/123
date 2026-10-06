@@ -13,6 +13,7 @@ import { brand } from "@/config/brand";
 import { josa } from "@/lib/josa";
 import { economy, gameIds, games, type GameId } from "./games";
 import { itemById, missingItems, missingRoomItems } from "./catalog";
+import { houseSchema, validateHouse } from "@/features/house/schema";
 import { roomSchema } from "@/features/room/schema";
 import { attendanceStreak, grantCoins, ownedItemIds, todayGameEarnings } from "./service";
 import { checkLimit } from "@/lib/rate-limit";
@@ -98,7 +99,8 @@ export async function buyItem(itemId: string): Promise<ActionResult<{ coins: num
       return (await tx.user.findUniqueOrThrow({ where: { id: me.id }, select: { coins: true } })).coins;
     });
     revalidatePath("/town", "layout");
-    return ok({ coins }, item.kind === "room" ? `${item.name}을(를) 샀어요! 미니룸에 놓아 보세요.` : `${item.name}을(를) 샀어요! 옷장에서 입어보세요.`);
+    const where = item.kind === "house" ? "2.5D 집에 놓아 보세요." : item.kind === "room" ? "미니룸에 놓아 보세요." : "옷장에서 입어보세요.";
+    return ok({ coins }, `${josa(item.name, "을", "를")} 샀어요! ${where}`);
   } catch (e) {
     if (e instanceof InsufficientCoins) return fail(`${josa(c.name, "이", "가")} 부족해요. 미니게임으로 모아보세요!`);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("이미 갖고 있는 아이템이에요.");
@@ -162,7 +164,7 @@ export async function giftItem(input: z.input<typeof giftSchema>): Promise<Actio
       preview: message ? `${item.name} · "${message}"` : item.name,
     });
     revalidatePath("/town", "layout");
-    return ok({ coins: coins.coins }, `${item.name}을(를) 선물했어요! 🎁`);
+    return ok({ coins: coins.coins }, `${josa(item.name, "을", "를")} 선물했어요! 🎁`);
   } catch (e) {
     if (e instanceof InsufficientCoins) return fail(`${josa(c.name, "이", "가")} 부족해요. 미니게임으로 모아보세요!`);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("친구가 이미 갖고 있는 아이템이에요.");
@@ -180,4 +182,17 @@ export async function saveRoom(input: unknown): Promise<ActionResult> {
   await db.spaceSettings.upsert({ where: { userId: me.id }, create: { userId: me.id, room: parsed.data }, update: { room: parsed.data } });
   revalidatePath("/", "layout");
   return ok(undefined, "미니룸을 새로 꾸몄어요!");
+}
+
+/** 2.5D 집 저장: 보유한 가구만, 방 안에, 서로 겹치지 않게 */
+export async function saveHouse(input: unknown): Promise<ActionResult> {
+  const me = await getCurrentUser();
+  if (!me) return fail(messages.unauthorized);
+  const parsed = houseSchema.safeParse(input);
+  if (!parsed.success) return fail("집 구성을 확인해 주세요.");
+  const problem = validateHouse(parsed.data, await ownedItemIds(me.id));
+  if (problem) return fail(problem);
+  await db.spaceSettings.upsert({ where: { userId: me.id }, create: { userId: me.id, house: parsed.data }, update: { house: parsed.data } });
+  revalidatePath("/", "layout");
+  return ok(undefined, "집을 새로 꾸몄어요! 🏠");
 }

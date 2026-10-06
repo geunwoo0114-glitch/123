@@ -9,6 +9,7 @@ export function SpaceTabs({ username, counts }: { username: string; counts?: Par
   const base = `/@${username}`;
   const tabs = [
     { href: base, key: "home", label: "홈" },
+    { href: `${base}/house`, key: "house", label: "2.5D 집" },
     { href: `${base}/posts`, key: "posts", label: "소식" },
     { href: `${base}/diary`, key: "diary", label: "다이어리" },
     { href: `${base}/photos`, key: "photos", label: "사진첩" },

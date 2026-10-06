@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { catalog, isFreeItem, isFreeRoomItem, missingItems, missingRoomItems, roomCatalog } from "./catalog";
 import { defaultRoom } from "@/features/room/schema";
+import { isFreeFurniture } from "@/features/house/schema";
 import { defaultAvatar } from "@/features/avatar/schema";
 
 describe("catalog", () => {
@@ -9,7 +10,7 @@ describe("catalog", () => {
   });
   it("무료 아이템은 가격이 0, 유료 아이템은 0보다 크다", () => {
     for (const i of catalog) {
-      const free = i.kind === "avatar" ? isFreeItem(i.slot, i.index) : isFreeRoomItem(i.slot, i.index);
+      const free = i.kind === "avatar" ? isFreeItem(i.slot, i.index) : i.kind === "room" ? isFreeRoomItem(i.slot, i.index) : isFreeFurniture(i.id.slice("house.".length));
       expect(i.price === 0).toBe(free);
     }
   });

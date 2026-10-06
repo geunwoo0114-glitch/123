@@ -3,6 +3,7 @@
  * 실행: npm run db:seed  (기존 데모 계정은 지우고 다시 만든다)
  */
 import { PrismaClient, type Visibility } from "@prisma/client";
+import { houseItemId, isFreeFurniture, validateHouse, type HouseConfig } from "../src/features/house/schema";
 import sharp from "sharp";
 import { randomBytes, scryptSync } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -74,6 +75,68 @@ const rooms = [
   { wall: 0, floor: 0, window: 0, shelf: 0, deco: 0, corner: 3, desk: 0, rug: 0 },
 ];
 
+/** 사람마다 다른 2.5D 집 (데모). 없으면 기본 집 */
+const houses: (HouseConfig | null)[] = [
+  {
+    wall: 1,
+    floor: 0,
+    light: "sunset",
+    items: [
+      { k: "bedDouble", x: 0, z: 0, r: 0, c: 1 },
+      { k: "sideTable", x: 7, z: 0, r: 0, c: 0 },
+      { k: "radio", x: 7, z: 0, r: 0, c: 0 },
+      { k: "bookcaseClosedWide", x: 10, z: 0, r: 0, c: 0 },
+      { k: "kitchenCoffeeMachine", x: 10, z: 0, r: 0, c: 0 },
+      { k: "plantSmall1", x: 13, z: 0, r: 0, c: 0 },
+      { k: "bear", x: 8, z: 4, r: 0, c: 0 },
+      { k: "loungeChair", x: 11, z: 5, r: 3, c: 4 },
+      { k: "lampRoundFloor", x: 0, z: 9, r: 0, c: 0 },
+      { k: "rugRectangle", x: 5, z: 8, r: 0, c: 2 },
+      { k: "tableRound", x: 7, z: 8, r: 0, c: 0 },
+      { k: "laptop", x: 7, z: 8, r: 0, c: 0 },
+      { k: "loungeSofa", x: 6, z: 12, r: 2, c: 3 },
+      { k: "pottedPlant", x: 13, z: 8, r: 0, c: 0 },
+    ],
+  },
+  {
+    wall: 4,
+    floor: 2,
+    light: "day",
+    items: [
+      { k: "bedSingle", x: 0, z: 0, r: 0, c: 5 },
+      { k: "cardboardBoxOpen", x: 7, z: 0, r: 0, c: 0 },
+      { k: "cardboardBoxOpen", x: 7, z: 2, r: 1, c: 0 },
+      { k: "deskCorner", x: 10, z: 0, r: 0, c: 0 },
+      { k: "computerScreen", x: 11, z: 0, r: 0, c: 0 },
+      { k: "chairDesk", x: 11, z: 5, r: 2, c: 0 },
+      { k: "coatRackStanding", x: 13, z: 8, r: 0, c: 0 },
+      { k: "rugRectangle", x: 3, z: 9, r: 0, c: 3 },
+      { k: "loungeSofa", x: 4, z: 12, r: 2, c: 5 },
+      { k: "pottedPlant", x: 0, z: 12, r: 0, c: 0 },
+    ],
+  },
+  {
+    wall: 5,
+    floor: 1,
+    light: "night",
+    items: [
+      { k: "bedSingle", x: 0, z: 0, r: 0, c: 6 },
+      { k: "speaker", x: 7, z: 0, r: 0, c: 0 },
+      { k: "cabinetTelevision", x: 8, z: 0, r: 0, c: 0 },
+      { k: "televisionModern", x: 8, z: 0, r: 0, c: 0 },
+      { k: "speaker", x: 12, z: 0, r: 0, c: 0 },
+      { k: "lampRoundFloor", x: 13, z: 3, r: 0, c: 0 },
+      { k: "rugRound", x: 6, z: 7, r: 0, c: 1 },
+      { k: "loungeChair", x: 11, z: 8, r: 3, c: 1 },
+      { k: "loungeDesignSofa", x: 5, z: 12, r: 2, c: 0 },
+      { k: "pottedPlant", x: 0, z: 12, r: 0, c: 0 },
+    ],
+  },
+  null,
+  null,
+  null,
+];
+
 async function main() {
   await db.user.deleteMany({ where: { username: { in: [...people.map((p) => p.username), "ops"] } } });
   const pw = hash(PASSWORD);
@@ -90,7 +153,7 @@ async function main() {
         createdAt: ago(24 * (40 - i * 5)),
         coinTransactions: { create: { amount: 300 - i * 30, reason: "ADMIN", refId: "seed" } },
         profile: { create: { displayName: p.name, bio: p.bio, statusMessage: p.status, statusEmoji: p.emoji, statusUpdatedAt: p.status ? ago(i * 5 + 1) : null, interests: p.interests, avatar: p.avatar, totalVisits: [1204, 389, 4521, 97, 52, 18][i] } },
-        space: { create: { themeId: p.theme, backgroundId: p.bg, layoutVariant: i === 1 ? "cover" : "classic", room: rooms[i] } },
+        space: { create: { themeId: p.theme, backgroundId: p.bg, layoutVariant: i === 1 ? "cover" : "classic", room: rooms[i], ...(houses[i] ? { house: houses[i] } : {}) } },
         settings: { create: { showVisitorsPublic: i % 2 === 0 } },
       },
     });
@@ -98,6 +161,14 @@ async function main() {
     // 데모 방에 쓰인 유료 아이템은 보유한 것으로
     const roomItems = missingRoomItems(rooms[i], new Set());
     if (roomItems.length) await db.userItem.createMany({ data: roomItems.map((itemId) => ({ userId: u.id, itemId })) });
+    // 데모 집에 쓰인 유료 가구도 보유한 것으로 (잘못된 배치는 바로 알 수 있게 검증)
+    const house = houses[i];
+    if (house) {
+      const paid = [...new Set(house.items.filter((it) => !isFreeFurniture(it.k)).map((it) => houseItemId(it.k)))];
+      const problem = validateHouse(house, new Set(paid));
+      if (problem) throw new Error(`데모 집(${p.username}) 배치 오류: ${problem}`);
+      await db.userItem.createMany({ data: paid.map((itemId) => ({ userId: u.id, itemId })) });
+    }
   }
   const id = (n: string) => users[n];
   const pair = (a: string, b: string) => (id(a) < id(b) ? [id(a), id(b)] : [id(b), id(a)]);

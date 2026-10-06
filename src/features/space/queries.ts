@@ -7,6 +7,7 @@ import { countFriends, getFriendLabel, getRelation } from "@/features/relationsh
 import { mediaSelect, type MediaDTO } from "@/features/media/service";
 import { normalizeWidgets, type WidgetSetting } from "./themes";
 import { parseRoom, type RoomConfig } from "@/features/room/schema";
+import { parseHouse, type HouseConfig } from "@/features/house/schema";
 import { parseMusicUrl, type MusicEmbed } from "./music";
 
 export type SpaceDTO = {
@@ -25,6 +26,7 @@ export type SpaceDTO = {
   };
   theme: { themeId: string; backgroundId: string; layoutVariant: string; cardStyle: string; widgets: WidgetSetting[] };
   room: RoomConfig;
+  house: HouseConfig;
   music: { embed: MusicEmbed; title: string | null; artist: string | null } | null;
   pinnedPostId: string | null;
   relation: Relation;
@@ -102,6 +104,7 @@ export const getSpace = cache(async (username: string, viewerId: string | null):
       widgets: normalizeWidgets(space?.widgets),
     },
     room: parseRoom(space?.room),
+    house: parseHouse(space?.house),
     music: embed ? { embed, title: space?.musicTitle ?? null, artist: space?.musicArtist ?? null } : null,
     pinnedPostId: space?.pinnedPostId ?? null,
     relation,

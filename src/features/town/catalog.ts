@@ -1,5 +1,6 @@
 import { partCounts, type AvatarConfig, type Slot } from "@/features/avatar/schema";
 import { roomItemNames, roomSlots, type RoomConfig, type RoomSlot } from "@/features/room/schema";
+import { furniture, houseItemId } from "@/features/house/schema";
 
 /**
  * 미니미 상점 카탈로그.
@@ -53,7 +54,8 @@ function rarityOf(slot: ShopSlot, index: number): Rarity {
 
 export type AvatarItem = { id: string; kind: "avatar"; slot: ShopSlot; index: number; name: string; rarity: Rarity; price: number };
 export type RoomItem = { id: string; kind: "room"; slot: RoomSlot; index: number; name: string; rarity: Rarity; price: number };
-export type ShopItem = AvatarItem | RoomItem;
+export type HouseItem = { id: string; kind: "house"; slot: string; index: number; name: string; rarity: Rarity; price: number };
+export type ShopItem = AvatarItem | RoomItem | HouseItem;
 
 function itemName(slot: ShopSlot, index: number) {
   const label = shopSlots.find((s) => s.slot === slot)!.label;
@@ -111,7 +113,19 @@ export function missingRoomItems(room: RoomConfig, owned: Set<string>): string[]
     .map(({ slot, index }) => `room.${slot}:${index}`);
 }
 
-export const catalog: ShopItem[] = [...avatarCatalog, ...roomCatalog];
+/* ───────── 2.5D 집 가구 ───────── */
+
+export const houseCatalog: HouseItem[] = furniture.map((f, index) => ({
+  id: houseItemId(f.kind),
+  kind: "house" as const,
+  slot: f.category,
+  index,
+  name: f.name,
+  rarity: f.price === 0 ? "basic" : f.price >= 120 ? "special" : f.price >= 70 ? "rare" : "common",
+  price: f.price,
+}));
+
+export const catalog: ShopItem[] = [...avatarCatalog, ...roomCatalog, ...houseCatalog];
 
 export const itemById = (id: string) => catalog.find((i) => i.id === id);
 

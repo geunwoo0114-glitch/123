@@ -1,0 +1,7 @@
+2.5D 집 가구 모델 (public/house/models/*.glb)
+
+출처: Kenney "Furniture Kit" — https://kenney.nl/assets/furniture-kit
+라이선스: Creative Commons Zero (CC0 1.0) — 상업적 이용 포함 자유롭게 사용 가능, 출처 표기 불필요
+감사: Kenney (www.kenney.nl)
+
+GLB 변환본은 공개 저장소 github.com/watcharatornkha-svg/cs-quest-models 에서 가져왔다.
