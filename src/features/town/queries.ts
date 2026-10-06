@@ -1,22 +1,26 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { defaultAvatar, parseAvatar } from "@/features/avatar/schema";
+import { parseRoom } from "@/features/room/schema";
 import { ownedItemIds } from "./service";
 import { listFriends } from "@/features/relationships/queries";
 import { userCardSelect, toUserCard } from "@/features/users/card";
 import { itemById } from "./catalog";
 
 export async function getClosetState(userId: string) {
-  const [profile, owned, user] = await Promise.all([
+  const [profile, owned, user, space] = await Promise.all([
     db.profile.findUnique({ where: { userId }, select: { avatar: true, displayName: true } }),
     ownedItemIds(userId),
     db.user.findUnique({ where: { id: userId }, select: { coins: true } }),
+    db.spaceSettings.findUnique({ where: { userId }, select: { room: true, themeId: true } }),
   ]);
   return {
     avatar: parseAvatar(profile?.avatar) ?? defaultAvatar,
     displayName: profile?.displayName ?? "",
     owned: [...owned],
     coins: user?.coins ?? 0,
+    room: parseRoom(space?.room),
+    themeId: space?.themeId ?? "peach",
   };
 }
 

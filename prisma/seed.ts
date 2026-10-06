@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { randomBytes, scryptSync } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { missingRoomItems } from "../src/features/town/catalog";
 
 const db = new PrismaClient();
 const PASSWORD = "darak1234";
@@ -63,6 +64,16 @@ const people = [
   { username: "jun", name: "준", status: "", emoji: "", bio: "고양이 집사", interests: ["반려동물", "영화"], theme: "butter", bg: "paper", avatar: { hair: 16, body: 9, glasses: 1, gesture: 0, beard: 3, bodyIcon: 0, brows: 10, eyes: 0, lips: 6, nose: 7, bg: 1 } },
 ];
 
+/** 사람마다 다른 미니룸 (데모) */
+const rooms = [
+  { wall: 5, floor: 1, window: 0, shelf: 0, deco: 4, corner: 0, desk: 0, rug: 1 },
+  { wall: 1, floor: 4, window: 2, shelf: 3, deco: 2, corner: 2, desk: 1, rug: 0 },
+  { wall: 4, floor: 3, window: 1, shelf: 1, deco: 3, corner: 1, desk: 2, rug: 2 },
+  { wall: 3, floor: 2, window: 3, shelf: 2, deco: 1, corner: 4, desk: 1, rug: 3 },
+  { wall: 2, floor: 3, window: 0, shelf: 3, deco: 0, corner: 0, desk: 3, rug: 0 },
+  { wall: 0, floor: 0, window: 0, shelf: 0, deco: 0, corner: 3, desk: 0, rug: 0 },
+];
+
 async function main() {
   await db.user.deleteMany({ where: { username: { in: people.map((p) => p.username) } } });
   const pw = hash(PASSWORD);
@@ -78,11 +89,14 @@ async function main() {
         createdAt: ago(24 * (40 - i * 5)),
         coinTransactions: { create: { amount: 300 - i * 30, reason: "ADMIN", refId: "seed" } },
         profile: { create: { displayName: p.name, bio: p.bio, statusMessage: p.status, statusEmoji: p.emoji, statusUpdatedAt: p.status ? ago(i * 5 + 1) : null, interests: p.interests, avatar: p.avatar, totalVisits: [1204, 389, 4521, 97, 52, 18][i] } },
-        space: { create: { themeId: p.theme, backgroundId: p.bg, layoutVariant: i === 1 ? "cover" : "classic" } },
+        space: { create: { themeId: p.theme, backgroundId: p.bg, layoutVariant: i === 1 ? "cover" : "classic", room: rooms[i] } },
         settings: { create: { showVisitorsPublic: i % 2 === 0 } },
       },
     });
     users[p.username] = u.id;
+    // 데모 방에 쓰인 유료 아이템은 보유한 것으로
+    const roomItems = missingRoomItems(rooms[i], new Set());
+    if (roomItems.length) await db.userItem.createMany({ data: roomItems.map((itemId) => ({ userId: u.id, itemId })) });
   }
   const id = (n: string) => users[n];
   const pair = (a: string, b: string) => (id(a) < id(b) ? [id(a), id(b)] : [id(b), id(a)]);

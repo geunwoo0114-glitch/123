@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { NotebookPen, Images, MessageSquareHeart, Users, Sparkles, Footprints } from "lucide-react";
+import { NotebookPen, Images, MessageSquareHeart, Users, Sparkles, Footprints, Sofa } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { serviceDay, formatDay, relativeTime } from "@/lib/dates";
 import { getSpace } from "@/features/space/queries";
@@ -47,7 +47,7 @@ export default async function SpaceHome({ params }: PageProps<"/u/[username]">) 
   const widgets: Record<string, React.ReactNode> = {
     intro: (
       <section key="intro" className="space-card overflow-hidden xl:col-span-2" aria-label="미니룸">
-        <MiniRoom minimi={owner.minimi} name={owner.displayName} statusMessage={owner.statusMessage ? `${owner.statusEmoji} ${owner.statusMessage}`.trim() : undefined} />
+        <MiniRoom room={space.room} minimi={owner.minimi} name={owner.displayName} statusMessage={owner.statusMessage ? `${owner.statusEmoji} ${owner.statusMessage}`.trim() : undefined} />
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
           {owner.interests.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
@@ -59,9 +59,14 @@ export default async function SpaceHome({ params }: PageProps<"/u/[username]">) 
             <span className="text-caption text-fg-subtle">{owner.displayName}님의 {brand.spaceNoun}에 오신 걸 환영해요</span>
           )}
           {isOwner && (
-            <ButtonLink href="/town/closet" variant="soft" size="sm" icon={<Sparkles className="size-4" />}>
-              미니미 꾸미기
-            </ButtonLink>
+            <div className="flex gap-1.5">
+              <ButtonLink href="/town/room" variant="soft" size="sm" icon={<Sofa className="size-4" />}>
+                방 꾸미기
+              </ButtonLink>
+              <ButtonLink href="/town/closet" variant="soft" size="sm" icon={<Sparkles className="size-4" />}>
+                미니미
+              </ButtonLink>
+            </div>
           )}
         </div>
       </section>

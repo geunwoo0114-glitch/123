@@ -1,4 +1,5 @@
 import { partCounts, type AvatarConfig, type Slot } from "@/features/avatar/schema";
+import { roomItemNames, roomSlots, type RoomConfig, type RoomSlot } from "@/features/room/schema";
 
 /**
  * 미니미 상점 카탈로그.
@@ -50,7 +51,9 @@ function rarityOf(slot: ShopSlot, index: number): Rarity {
   return "common";
 }
 
-export type ShopItem = { id: string; slot: ShopSlot; index: number; name: string; rarity: Rarity; price: number };
+export type AvatarItem = { id: string; kind: "avatar"; slot: ShopSlot; index: number; name: string; rarity: Rarity; price: number };
+export type RoomItem = { id: string; kind: "room"; slot: RoomSlot; index: number; name: string; rarity: Rarity; price: number };
+export type ShopItem = AvatarItem | RoomItem;
 
 function itemName(slot: ShopSlot, index: number) {
   const label = shopSlots.find((s) => s.slot === slot)!.label;
@@ -60,12 +63,55 @@ function itemName(slot: ShopSlot, index: number) {
   return `${label} No.${String(index).padStart(2, "0")}`;
 }
 
-export const catalog: ShopItem[] = shopSlots.flatMap(({ slot }) =>
+export const avatarCatalog: AvatarItem[] = shopSlots.flatMap(({ slot }) =>
   Array.from({ length: partCounts[slot] }, (_, index) => {
     const rarity = rarityOf(slot, index);
-    return { id: `${slot}:${index}`, slot, index, name: itemName(slot, index), rarity, price: rarityPrice[rarity] };
+    return { id: `${slot}:${index}`, kind: "avatar" as const, slot, index, name: itemName(slot, index), rarity, price: rarityPrice[rarity] };
   }),
 );
+
+/* ───────── 미니룸 아이템 ───────── */
+
+/** 슬롯별 무료(기본) 인덱스 */
+const roomFree: Record<RoomSlot, number[]> = {
+  wall: [0, 2],
+  floor: [0, 1],
+  window: [0],
+  shelf: [0, 4],
+  deco: [0],
+  corner: [0, 5],
+  desk: [0],
+  rug: [0, 3],
+};
+/** 특별한 아이템은 스페셜로 */
+const roomSpecial: Partial<Record<RoomSlot, number[]>> = { wall: [4], corner: [3], deco: [3], window: [1] };
+
+function roomRarity(slot: RoomSlot, index: number): Rarity {
+  if (roomFree[slot].includes(index)) return "basic";
+  if (roomSpecial[slot]?.includes(index)) return "special";
+  return index % 2 === 0 ? "rare" : "common";
+}
+
+export const roomCatalog: RoomItem[] = roomSlots.flatMap(({ slot, count }) =>
+  Array.from({ length: count }, (_, index) => {
+    const rarity = roomRarity(slot, index);
+    return { id: `room.${slot}:${index}`, kind: "room" as const, slot, index, name: roomItemNames[slot][index], rarity, price: rarityPrice[rarity] };
+  }),
+);
+
+export function isFreeRoomItem(slot: RoomSlot, index: number) {
+  return roomFree[slot].includes(index);
+}
+
+/** 이 방 구성을 쓸 수 있는지 (보유하지 않은 유료 아이템 목록) */
+export function missingRoomItems(room: RoomConfig, owned: Set<string>): string[] {
+  return roomSlots
+    .map(({ slot }) => ({ slot, index: room[slot] }))
+    .filter(({ slot, index }) => !isFreeRoomItem(slot, index) && !owned.has(`room.${slot}:${index}`))
+    .map(({ slot, index }) => `room.${slot}:${index}`);
+}
+
+export const catalog: ShopItem[] = [...avatarCatalog, ...roomCatalog];
 
 export const itemById = (id: string) => catalog.find((i) => i.id === id);
 

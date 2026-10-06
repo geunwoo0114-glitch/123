@@ -11,7 +11,8 @@ import { fail, messages, ok, type ActionResult } from "@/lib/action";
 import { avatarSchema } from "@/features/avatar/schema";
 import { brand } from "@/config/brand";
 import { economy, gameIds, games, type GameId } from "./games";
-import { itemById, missingItems } from "./catalog";
+import { itemById, missingItems, missingRoomItems } from "./catalog";
+import { roomSchema } from "@/features/room/schema";
 import { attendanceStreak, grantCoins, ownedItemIds, todayGameEarnings } from "./service";
 import { checkLimit } from "@/lib/rate-limit";
 import { getRelation } from "@/features/relationships/queries";
@@ -96,7 +97,7 @@ export async function buyItem(itemId: string): Promise<ActionResult<{ coins: num
       return (await tx.user.findUniqueOrThrow({ where: { id: me.id }, select: { coins: true } })).coins;
     });
     revalidatePath("/town", "layout");
-    return ok({ coins }, `${item.name}을(를) 샀어요! 옷장에서 입어보세요.`);
+    return ok({ coins }, item.kind === "room" ? `${item.name}을(를) 샀어요! 미니룸에 놓아 보세요.` : `${item.name}을(를) 샀어요! 옷장에서 입어보세요.`);
   } catch (e) {
     if (e instanceof InsufficientCoins) return fail(`${c.name}이 부족해요. 미니게임으로 모아보세요!`);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("이미 갖고 있는 아이템이에요.");
@@ -166,4 +167,16 @@ export async function giftItem(input: z.input<typeof giftSchema>): Promise<Actio
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("친구가 이미 갖고 있는 아이템이에요.");
     throw e;
   }
+}
+
+/** 미니룸 꾸미기 저장: 보유한(또는 기본) 아이템으로만 꾸밀 수 있다 */
+export async function saveRoom(input: unknown): Promise<ActionResult> {
+  const me = await getCurrentUser();
+  if (!me) return fail(messages.unauthorized);
+  const parsed = roomSchema.safeParse(input);
+  if (!parsed.success) return fail("방 구성을 확인해 주세요.");
+  if (missingRoomItems(parsed.data, await ownedItemIds(me.id)).length) return fail("아직 갖고 있지 않은 아이템이 있어요. 상점에서 먼저 구매해 주세요.");
+  await db.spaceSettings.upsert({ where: { userId: me.id }, create: { userId: me.id, room: parsed.data }, update: { room: parsed.data } });
+  revalidatePath("/", "layout");
+  return ok(undefined, "미니룸을 새로 꾸몄어요!");
 }

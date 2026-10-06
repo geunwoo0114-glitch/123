@@ -183,6 +183,8 @@ model SpaceSettings {
   widgets       Json?
   /// 대표 콘텐츠(핀) - 게시물 id
   pinnedPostId  String?
+  /// 미니룸 구성 (src/features/room/schema.ts 로 검증된 슬롯 → 아이템 인덱스)
+  room          Json?
   /// BGM: 공식 임베드가 가능한 외부 링크(Spotify/YouTube)만 허용
   musicUrl      String?
   musicTitle    String?

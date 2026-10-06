@@ -75,6 +75,23 @@ test("미니게임 타운: 출석 보상 → 상점 구매 → 옷장에서 착�
   await expect(page.getByText("미니미를 새로 꾸몄어요!")).toBeVisible();
 });
 
+test("미니룸: 벽지를 사서 방에 붙이면 내 공간에 보인다", async ({ page }) => {
+  await login(page, host);
+  await page.goto("/town/shop?tab=room");
+  // 줄무늬 벽지(일반, 40)를 산다
+  await page.getByRole("button", { name: "줄무늬 놓아보기" }).click();
+  await page.locator("li", { hasText: "줄무늬" }).getByRole("button", { name: /^🌰 40$/ }).click();
+  await expect(page.getByText(/미니룸에 놓아 보세요/)).toBeVisible();
+
+  await page.goto("/town/room");
+  await page.getByRole("button", { name: "줄무늬", exact: true }).click();
+  await page.getByRole("button", { name: "이대로 꾸미기" }).click();
+  await expect(page.getByText("미니룸을 새로 꾸몄어요!")).toBeVisible();
+
+  // 사지 않은 아이템(밤하늘 벽지)은 고를 수 없다
+  await expect(page.getByRole("button", { name: "밤하늘 (상점에서 구매 필요)" })).toBeDisabled();
+});
+
 test("권한: 비로그인 방문자는 친구 공개 글을 볼 수 없고, 남의 글은 수정할 수 없다", async ({ page, browser }) => {
   const ctx = await browser.newContext();
   const h = await ctx.newPage();

@@ -4,8 +4,9 @@ import { ShopView } from "@/components/town/shop-view";
 
 export const metadata = { title: "미니미 상점" };
 
-export default async function ShopPage() {
+export default async function ShopPage({ searchParams }: PageProps<"/town/shop">) {
+  const { tab } = await searchParams;
   const me = await requireOnboardedUser("/town/shop");
   const [state, friends] = await Promise.all([getClosetState(me.id), giftableFriends(me.id)]);
-  return <ShopView avatar={state.avatar} owned={state.owned} coins={state.coins} name={state.displayName} friends={friends} />;
+  return <ShopView avatar={state.avatar} owned={state.owned} coins={state.coins} name={state.displayName} friends={friends} room={state.room} themeId={state.themeId} initialMode={tab === "room" ? "room" : "avatar"} />;
 }
