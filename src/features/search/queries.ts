@@ -12,24 +12,33 @@ export async function searchUsers(q: string, viewerId: string | null, take = 20)
   const term = q.trim().replace(/^@/, "").slice(0, 40);
   if (!term) return [];
   const blocked = viewerId ? await getBlockedIds(viewerId) : [];
-  const rows = await db.user.findMany({
-    where: {
-      status: "ACTIVE",
-      onboardedAt: { not: null },
-      id: { notIn: blocked },
-      settings: { discoverable: true },
-      OR: [
-        { username: { contains: term.toLowerCase() } },
-        { profile: { displayName: { contains: term, mode: "insensitive" } } },
-        { profile: { interests: { has: term } } },
-      ],
-    },
-    orderBy: { createdAt: "desc" },
-    take,
-    select: userCardSelect,
-  });
-  // 정확히 일치하는 아이디를 맨 앞으로
-  return rows.map(toUserCard).sort((a, b) => Number(b.username === term.toLowerCase()) - Number(a.username === term.toLowerCase()));
+  const lower = term.toLowerCase();
+  const like = `%${lower.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  // 부분 일치(ILIKE, trigram 인덱스) + 오타 허용(similarity) + 관심사 일치. 정확한 아이디 → 유사도 순
+  const rows = await db.$queryRaw<{ id: string }[]>`
+    SELECT u.id
+    FROM "User" u
+    JOIN "Profile" p ON p."userId" = u.id
+    LEFT JOIN "UserSettings" s ON s."userId" = u.id
+    WHERE u.status = 'ACTIVE'
+      AND u."onboardedAt" IS NOT NULL
+      AND COALESCE(s.discoverable, true)
+      AND NOT (u.id = ANY(${blocked}::text[]))
+      AND (
+        u.username ILIKE ${like}
+        OR p."displayName" ILIKE ${like}
+        OR similarity(u.username, ${lower}) > 0.35
+        OR similarity(p."displayName", ${term}) > 0.35
+        OR ${term} = ANY(p.interests)
+      )
+    ORDER BY (u.username = ${lower}) DESC,
+             GREATEST(similarity(u.username, ${lower}), similarity(p."displayName", ${term})) DESC,
+             u."createdAt" DESC
+    LIMIT ${take}`;
+  if (rows.length === 0) return [];
+  const users = await db.user.findMany({ where: { id: { in: rows.map((r) => r.id) } }, select: userCardSelect });
+  const order = new Map(rows.map((r, i) => [r.id, i]));
+  return users.map(toUserCard).sort((a, b) => order.get(a.id)! - order.get(b.id)!);
 }
 
 /** 공개 글 태그/내용 검색 */

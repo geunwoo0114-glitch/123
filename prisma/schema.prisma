@@ -4,12 +4,15 @@
 // - 사용자 꾸미기 값은 CSS 문자열이 아니라 검증된 토큰(themeId 등)으로만 저장한다.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  /// pg_trgm: 오타를 허용하는 유사도 검색과 부분 일치(ILIKE) 인덱스
+  extensions = [pg_trgm]
 }
 
 enum Role {
@@ -137,6 +140,8 @@ model User {
   pushSubscriptions PushSubscription[]
   moderationActions ModerationAction[]
   authTokens        AuthToken[]
+
+  @@index([username(ops: raw("gin_trgm_ops"))], type: Gin, map: "User_username_trgm_idx")
 }
 
 model Session {
@@ -173,6 +178,7 @@ model Profile {
   updatedAt       DateTime  @updatedAt
 
   @@index([displayName])
+  @@index([displayName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Profile_displayName_trgm_idx")
 }
 
 /// 개인 공간 꾸미기 - 모든 값은 토큰(허용 목록)으로만 저장
@@ -322,6 +328,7 @@ model Post {
 
   @@index([authorId, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+  @@index([body(ops: raw("gin_trgm_ops"))], type: Gin, map: "Post_body_trgm_idx")
 }
 
 model PostImage {

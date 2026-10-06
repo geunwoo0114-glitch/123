@@ -80,6 +80,19 @@ test("미니게임 타운: 출석 보상 → 상점 구매 → 옷장에서 착�
   await expect(page.getByText("미니미를 새로 꾸몄어요!")).toBeVisible();
 });
 
+test("검색: 아이디 일부·오타로도 사람을 찾을 수 있다", async ({ page }) => {
+  await login(page, host);
+  // 아이디 앞부분
+  await page.goto(`/explore?q=${host.slice(0, 7)}`);
+  await expect(page.getByRole("link", { name: new RegExp(`@${host}`) }).first()).toBeVisible();
+  // 이름(한글)
+  await page.goto(`/explore?q=${encodeURIComponent("호스트")}`);
+  await expect(page.getByRole("link", { name: new RegExp(`@${host}`) }).first()).toBeVisible();
+  // 특수문자는 안전하게 처리 (전체 일치로 해석되지 않음)
+  await page.goto(`/explore?q=${encodeURIComponent("%_%")}`);
+  await expect(page.getByText(/에 맞는 사람이 없어요/)).toBeVisible();
+});
+
 test("미니룸: 벽지를 사서 방에 붙이면 내 공간에 보인다", async ({ page }) => {
   await login(page, host);
   await page.goto("/town/shop?tab=room");
