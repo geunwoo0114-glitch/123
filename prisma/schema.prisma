@@ -1,0 +1,552 @@
+// 다락 데이터 모델
+// - 모든 시간은 UTC로 저장하고, "날짜" 개념(다이어리 날짜, 방문 일자)은
+//   서비스 기준 타임존(src/config/app.ts)으로 계산한 YYYY-MM-DD 문자열/Date로 저장한다.
+// - 사용자 꾸미기 값은 CSS 문자열이 아니라 검증된 토큰(themeId 등)으로만 저장한다.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+/// 콘텐츠 공개 범위. CLOSE_FRIENDS = 작성자가 '친한 친구'로 지정한 사람만.
+enum Visibility {
+  PUBLIC
+  FRIENDS
+  CLOSE_FRIENDS
+  PRIVATE
+}
+
+/// 방명록을 쓸 수 있는 사람
+enum GuestbookPolicy {
+  EVERYONE
+  FRIENDS
+  NOBODY
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPT
+  FOLLOW
+  POST_LIKE
+  POST_COMMENT
+  COMMENT_REPLY
+  GUESTBOOK
+  GUESTBOOK_REPLY
+}
+
+enum ReportTarget {
+  USER
+  POST
+  COMMENT
+  GUESTBOOK
+  DIARY
+  PHOTO
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+model User {
+  id                String        @id @default(cuid())
+  email             String        @unique
+  /// 소문자 정규화된 username (URL: /@username)
+  username          String        @unique
+  passwordHash      String
+  role              Role          @default(USER)
+  status            AccountStatus @default(ACTIVE)
+  /// 표시용 타임존 (향후 사용자별 설정 확장)
+  timezone          String        @default("Asia/Seoul")
+  /// 미니게임 타운 재화 잔액 (원장 CoinTransaction 합계와 일치해야 함)
+  coins             Int           @default(0)
+  usernameChangedAt DateTime?
+  onboardedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  profile  Profile?
+  space    SpaceSettings?
+  settings UserSettings?
+  sessions Session[]
+
+  friendshipsA       Friendship[]  @relation("FriendshipA")
+  friendshipsB       Friendship[]  @relation("FriendshipB")
+  friendRequestsSent Friendship[]  @relation("FriendshipRequester")
+  closeFriendsOwned  CloseFriend[] @relation("CloseFriendOwner")
+  closeFriendOf      CloseFriend[] @relation("CloseFriendTarget")
+  following          Follow[]      @relation("Follower")
+  followers          Follow[]      @relation("Following")
+  blocking           Block[]       @relation("Blocker")
+  blockedBy          Block[]       @relation("Blocked")
+
+  media             Media[]
+  posts             Post[]
+  comments          Comment[]
+  postLikes         PostLike[]
+  diaryEntries      DiaryEntry[]
+  albums            Album[]
+  guestbookHosted   GuestbookEntry[]  @relation("GuestbookHost")
+  guestbookWritten  GuestbookEntry[]  @relation("GuestbookAuthor")
+  visitsHosted      Visit[]           @relation("VisitHost")
+  visitsMade        Visit[]           @relation("VisitVisitor")
+  notifications     Notification[]    @relation("NotificationRecipient")
+  notificationsSent Notification[]    @relation("NotificationActor")
+  reports           Report[]
+  events            ActivityEvent[]
+  coinTransactions  CoinTransaction[]
+  userItems         UserItem[]
+  gameSessions      GameSession[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  /// SHA-256(token). 원본 토큰은 쿠키에만 존재한다.
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Profile {
+  userId          String    @id
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName     String
+  bio             String    @default("")
+  statusMessage   String    @default("")
+  statusEmoji     String    @default("")
+  statusUpdatedAt DateTime?
+  avatarMediaId   String?
+  avatarMedia     Media?    @relation("ProfileAvatar", fields: [avatarMediaId], references: [id], onDelete: SetNull)
+  coverMediaId    String?
+  coverMedia      Media?    @relation("ProfileCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  interests       String[]  @default([])
+  /// 2D 캐릭터(미니미) 구성. src/features/avatar/schema.ts 로 검증된 JSON만 저장.
+  avatar          Json?
+  /// 누적 방문 수 (오늘 방문 수는 Visit 테이블에서 계산)
+  totalVisits     Int       @default(0)
+  updatedAt       DateTime  @updatedAt
+
+  @@index([displayName])
+}
+
+/// 개인 공간 꾸미기 - 모든 값은 토큰(허용 목록)으로만 저장
+model SpaceSettings {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  themeId       String   @default("peach")
+  backgroundId  String   @default("paper")
+  layoutVariant String   @default("classic")
+  cardStyle     String   @default("soft")
+  /// 위젯 순서/표시 여부: [{ id: "diary", visible: true }, ...]
+  widgets       Json?
+  /// 대표 콘텐츠(핀) - 게시물 id
+  pinnedPostId  String?
+  /// BGM: 공식 임베드가 가능한 외부 링크(Spotify/YouTube)만 허용
+  musicUrl      String?
+  musicTitle    String?
+  musicArtist   String?
+  updatedAt     DateTime @updatedAt
+}
+
+model UserSettings {
+  userId              String          @id
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 공간(홈) 기본 공개 범위 - 비공개면 친구가 아닌 사람은 프로필 카드만 볼 수 있음
+  spaceVisibility     Visibility      @default(PUBLIC)
+  guestbookPolicy     GuestbookPolicy @default(EVERYONE)
+  /// 내가 다른 공간에 방문할 때 '방문 흔적'을 남길지
+  leaveVisitTraces    Boolean         @default(true)
+  /// 내 공간에 남은 방문 흔적을 공개할지(꺼져 있으면 나만 봄)
+  showVisitorsPublic  Boolean         @default(false)
+  /// 검색/추천 노출
+  discoverable        Boolean         @default(true)
+  allowFriendRequests Boolean         @default(true)
+  notifyLikes         Boolean         @default(true)
+  notifyComments      Boolean         @default(true)
+  notifyGuestbook     Boolean         @default(true)
+  notifyFollows       Boolean         @default(true)
+  updatedAt           DateTime        @updatedAt
+}
+
+/// 친구(일촌) 관계. (userAId < userBId) 로 정규화하여 쌍마다 1행만 존재.
+model Friendship {
+  id          String           @id @default(cuid())
+  userAId     String
+  userBId     String
+  userA       User             @relation("FriendshipA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB       User             @relation("FriendshipB", fields: [userBId], references: [id], onDelete: Cascade)
+  requesterId String
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  status      FriendshipStatus @default(PENDING)
+  /// 우리 사이 이름(일촌명): A가 B를 부르는 이름 / B가 A를 부르는 이름
+  labelAtoB   String?
+  labelBtoA   String?
+  message     String?
+  createdAt   DateTime         @default(now())
+  acceptedAt  DateTime?
+
+  @@unique([userAId, userBId])
+  @@index([userBId, status])
+  @@index([userAId, status])
+}
+
+/// '친한 친구' 목록 (단방향, 친구 중에서만 지정)
+model CloseFriend {
+  ownerId   String
+  friendId  String
+  owner     User     @relation("CloseFriendOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  friend    User     @relation("CloseFriendTarget", fields: [friendId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([ownerId, friendId])
+  @@index([friendId])
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+model Block {
+  blockerId String
+  blockedId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+/// 업로드된 이미지. 원본은 저장하지 않고 정규화된(회전 보정, EXIF 제거, webp) 버전만 저장.
+model Media {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// 스토리지 키 (예: 2026/10/abc.webp)
+  key       String   @unique
+  thumbKey  String
+  mime      String
+  width     Int
+  height    Int
+  bytes     Int
+  /// 로딩 placeholder용 평균 색상 (#rrggbb)
+  dominant  String   @default("#e9e3da")
+  createdAt DateTime @default(now())
+
+  profileAvatars Profile[]    @relation("ProfileAvatar")
+  profileCovers  Profile[]    @relation("ProfileCover")
+  postImages     PostImage[]
+  diaryImages    DiaryImage[]
+  photos         Photo[]
+
+  @@index([ownerId, createdAt])
+}
+
+model Post {
+  id           String     @id @default(cuid())
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body         String
+  mood         String?
+  tags         String[]   @default([])
+  linkUrl      String?
+  visibility   Visibility @default(FRIENDS)
+  likeCount    Int        @default(0)
+  commentCount Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  images   PostImage[]
+  comments Comment[]
+  likes    PostLike[]
+
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+model PostImage {
+  postId  String
+  mediaId String
+  order   Int
+  alt     String @default("")
+  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media   Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([postId, mediaId])
+  @@index([postId, order])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  body      String
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+}
+
+model PostLike {
+  postId    String
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([postId, userId])
+  @@index([userId])
+}
+
+model DiaryEntry {
+  id         String     @id @default(cuid())
+  authorId   String
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// 일기의 날짜(작성자가 고른 날짜, 시간 없음)
+  date       DateTime   @db.Date
+  title      String
+  body       String
+  mood       String?
+  weather    String?
+  place      String?
+  tags       String[]   @default([])
+  visibility Visibility @default(PRIVATE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  deletedAt  DateTime?
+
+  images DiaryImage[]
+
+  @@index([authorId, date(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+model DiaryImage {
+  diaryId String
+  mediaId String
+  order   Int
+  diary   DiaryEntry @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+  media   Media      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([diaryId, mediaId])
+}
+
+model Album {
+  id           String     @id @default(cuid())
+  ownerId      String
+  owner        User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title        String
+  description  String     @default("")
+  coverPhotoId String?
+  visibility   Visibility @default(FRIENDS)
+  photoCount   Int        @default(0)
+  /// 마지막으로 사진이 추가된 시각 (피드 '사진첩 업데이트' 카드용)
+  lastPhotoAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  photos Photo[]
+
+  @@index([ownerId, updatedAt(sort: Desc)])
+  @@index([lastPhotoAt(sort: Desc)])
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  albumId   String
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  caption   String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([albumId, createdAt(sort: Desc)])
+}
+
+model GuestbookEntry {
+  id        String    @id @default(cuid())
+  hostId    String
+  host      User      @relation("GuestbookHost", fields: [hostId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation("GuestbookAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  /// 비밀글: 공간 주인과 작성자만 볼 수 있음
+  isSecret  Boolean   @default(false)
+  /// 작성자가 고른 스티커/분위기 토큰
+  sticker   String?
+  /// 공간 주인의 답글
+  reply     String?
+  repliedAt DateTime?
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([hostId, createdAt(sort: Desc)])
+  @@index([authorId])
+}
+
+/// 방문 기록: (공간, 방문자키, 날짜) 당 1행 = 일일 순방문자.
+/// visitorKey는 로그인 사용자면 userId, 비로그인은 익명 쿠키 해시.
+model Visit {
+  id         String   @id @default(cuid())
+  hostId     String
+  host       User     @relation("VisitHost", fields: [hostId], references: [id], onDelete: Cascade)
+  visitorKey String
+  visitorId  String?
+  visitor    User?    @relation("VisitVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
+  /// 서비스 타임존 기준 YYYY-MM-DD
+  day        String
+  /// 방문자가 흔적 남기기를 허용했는지
+  traced     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  lastAt     DateTime @default(now())
+
+  @@unique([hostId, visitorKey, day])
+  @@index([hostId, day])
+  @@index([hostId, traced, lastAt(sort: Desc)])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actorId     String
+  actor       User             @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  /// 관련 대상 id (게시물/방명록 등)
+  targetId    String?
+  /// 같은 행동의 중복 알림 방지 키 (예: like:postId:actorId)
+  dedupeKey   String           @unique
+  preview     String?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([recipientId, readAt])
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType ReportTarget
+  targetId   String
+  reason     String
+  detail     String       @default("")
+  status     ReportStatus @default(OPEN)
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
+}
+
+/// 제품 분석용 이벤트 로그 (외부 analytics 연동 전 단계)
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name      String
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+}
+
+/// 고정 윈도우 rate limit 카운터 (다중 인스턴스에서도 동작)
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+}
+
+enum CoinReason {
+  SIGNUP_BONUS
+  ATTENDANCE
+  GAME
+  PURCHASE
+  ADMIN
+}
+
+/// 재화 원장. 모든 증감은 여기에 남는다. (userId, refId) 유니크로 중복 지급/구매를 막는다.
+model CoinTransaction {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  reason    CoinReason
+  /// 멱등 키 (예: attendance:2026-10-06, item:hair:12, game:<sessionId>)
+  refId     String?
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, refId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, reason, createdAt])
+}
+
+/// 보유 아이템 (무료 기본 아이템은 행 없이 보유한 것으로 간주)
+model UserItem {
+  userId     String
+  itemId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  acquiredAt DateTime @default(now())
+
+  @@id([userId, itemId])
+}
+
+/// 미니게임 플레이 기록. 서버가 시작 시각을 기록해 점수의 타당성을 검증한다.
+model GameSession {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game       String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  score      Int?
+  reward     Int?
+
+  @@index([userId, startedAt(sort: Desc)])
+}

@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+/* ───────────────────────── Design tokens ─────────────────────────
+   semantic 색 토큰 → Tailwind 유틸리티(bg-surface, text-fg-muted 등)로 노출.
+   다크 모드는 토큰만 바꾸면 전체가 따라온다. */
+:root {
+  --bg: #f6f3ee;
+  --surface: #ffffff;
+  --surface-muted: #f1ece4;
+  --surface-sunken: #e9e3d9;
+  --fg: #1d1915;
+  --fg-muted: #6a625a;
+  --fg-subtle: #9a9187;
+  --line: #e7e0d5;
+  --line-strong: #d5cbbd;
+  --primary: #e2582f;
+  --primary-hover: #cc4a23;
+  --on-primary: #ffffff;
+  --primary-soft: #fde9e1;
+  --success: #23885d;
+  --success-soft: #def3e9;
+  --warning: #b97c12;
+  --warning-soft: #fbf0d6;
+  --danger: #cf3f3f;
+  --danger-soft: #fbe3e3;
+  --focus: #2f78c4;
+  --overlay: rgba(29, 25, 21, 0.45);
+
+  --shadow-1: 0 1px 2px rgba(48, 36, 24, 0.06), 0 1px 1px rgba(48, 36, 24, 0.04);
+  --shadow-2: 0 2px 6px rgba(48, 36, 24, 0.06), 0 8px 24px -8px rgba(48, 36, 24, 0.1);
+  --shadow-3: 0 8px 28px -6px rgba(48, 36, 24, 0.18), 0 2px 6px rgba(48, 36, 24, 0.06);
+  --shadow-4: 0 24px 60px -12px rgba(48, 36, 24, 0.3);
+
+  /* 공간 테마 기본값 (공간 페이지에서 사용자 테마로 덮어씀) */
+  --space-accent: var(--primary);
+  --space-on-accent: #fff;
+  --space-soft: var(--primary-soft);
+  --space-tint: #fbf3ec;
+  --space-soft-dark: #3a241b;
+  --space-tint-dark: #221a16;
+  --space-surface-tint: var(--space-tint);
+  --space-soft-current: var(--space-soft);
+
+  color-scheme: light;
+}
+
+
+:root[data-theme="dark"] {
+  --bg: #141210;
+  --surface: #1c1916;
+  --surface-muted: #24201c;
+  --surface-sunken: #2c2722;
+  --fg: #f3eee7;
+  --fg-muted: #b5aca1;
+  --fg-subtle: #857c72;
+  --line: #322d27;
+  --line-strong: #453e36;
+  --primary: #f06d45;
+  --primary-hover: #f5835f;
+  --primary-soft: #3a2219;
+  --success-soft: #16301f;
+  --warning-soft: #33280f;
+  --danger-soft: #3a1a1a;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --space-surface-tint: var(--space-tint-dark);
+  --space-soft-current: var(--space-soft-dark);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141210;
+    --surface: #1c1916;
+    --surface-muted: #24201c;
+    --surface-sunken: #2c2722;
+    --fg: #f3eee7;
+    --fg-muted: #b5aca1;
+    --fg-subtle: #857c72;
+    --line: #322d27;
+    --line-strong: #453e36;
+    --primary: #f06d45;
+    --primary-hover: #f5835f;
+    --primary-soft: #3a2219;
+    --success-soft: #16301f;
+    --warning-soft: #33280f;
+    --danger-soft: #3a1a1a;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --space-surface-tint: var(--space-tint-dark);
+    --space-soft-current: var(--space-soft-dark);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-accent: var(--space-accent);
+  --color-on-accent: var(--space-on-accent);
+  --color-accent-soft: var(--space-soft-current);
+  --color-space-tint: var(--space-surface-tint);
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+
+  /* Typography scale: display / heading / title / body / caption / label */
+  --text-display: 2rem;
+  --text-display--line-height: 1.2;
+  --text-display--letter-spacing: -0.03em;
+  --text-heading: 1.375rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--letter-spacing: -0.02em;
+  --text-title: 1.0625rem;
+  --text-title--line-height: 1.4;
+  --text-title--letter-spacing: -0.01em;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.45;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.3;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-3: var(--shadow-3);
+  --shadow-4: var(--shadow-4);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--primary-soft);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* ─────────────── 공간 배경 패턴 (토큰으로만 선택 가능) ─────────────── */
+.space-bg {
+  background-color: var(--space-surface-tint);
+}
+.space-bg-paper {
+  background-image: radial-gradient(color-mix(in srgb, var(--space-accent) 6%, transparent) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+.space-bg-dots {
+  background-image: radial-gradient(color-mix(in srgb, var(--space-accent) 22%, transparent) 1.4px, transparent 1.6px);
+  background-size: 22px 22px;
+}
+.space-bg-grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--space-accent) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--space-accent) 10%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.space-bg-lines {
+  background-image: linear-gradient(color-mix(in srgb, var(--space-accent) 12%, transparent) 1px, transparent 1px);
+  background-size: 100% 28px;
+}
+.space-bg-checker {
+  background-image:
+    linear-gradient(45deg, color-mix(in srgb, var(--space-accent) 7%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--space-accent) 7%, transparent) 75%),
+    linear-gradient(45deg, color-mix(in srgb, var(--space-accent) 7%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--space-accent) 7%, transparent) 75%);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* 공간 카드 스타일 */
+.space-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+}
+[data-card="soft"] .space-card {
+  box-shadow: var(--shadow-2);
+}
+[data-card="outline"] .space-card {
+  border: 1px solid var(--line-strong);
+}
+[data-card="sticker"] .space-card {
+  border: 1.5px solid var(--fg);
+  box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--space-accent) 85%, var(--fg));
+  border-radius: var(--radius-md);
+}
+
+/* ─────────────── 모션 ─────────────── */
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.animate-pop { animation: pop 320ms cubic-bezier(.2,.9,.3,1.4); }
+.animate-fade-up { animation: fade-up 260ms ease-out both; }
+.animate-sheet-up { animation: sheet-up 280ms cubic-bezier(.2,.8,.2,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 모바일 하단 내비 + safe area */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.mobile-nav-spacer { height: calc(64px + env(safe-area-inset-bottom)); }
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* 모바일 공간 하위 탭: 프로필 카드 접기 */
+@media (max-width: 1023px) {
+  [data-compact] .hide-compact {
+    display: none;
+  }
+  [data-compact] {
+    padding: 0.875rem 1rem !important;
+  }
+}
+
+/* 공간 테마 범위: 사용자 테마 변수를 받은 요소에서 파생 토큰을 다시 계산 */
+.space-scope {
+  --space-surface-tint: var(--space-tint);
+  --space-soft-current: var(--space-soft);
+}
+:root[data-theme="dark"] .space-scope {
+  --space-surface-tint: var(--space-tint-dark);
+  --space-soft-current: var(--space-soft-dark);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .space-scope {
+    --space-surface-tint: var(--space-tint-dark);
+    --space-soft-current: var(--space-soft-dark);
+  }
+}
