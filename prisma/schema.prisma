@@ -117,22 +117,23 @@ model User {
   postLikes         PostLike[]
   diaryEntries      DiaryEntry[]
   albums            Album[]
-  guestbookHosted   GuestbookEntry[]  @relation("GuestbookHost")
-  guestbookWritten  GuestbookEntry[]  @relation("GuestbookAuthor")
-  visitsHosted      Visit[]           @relation("VisitHost")
-  visitsMade        Visit[]           @relation("VisitVisitor")
-  notifications     Notification[]    @relation("NotificationRecipient")
-  notificationsSent Notification[]    @relation("NotificationActor")
+  guestbookHosted   GuestbookEntry[]   @relation("GuestbookHost")
+  guestbookWritten  GuestbookEntry[]   @relation("GuestbookAuthor")
+  visitsHosted      Visit[]            @relation("VisitHost")
+  visitsMade        Visit[]            @relation("VisitVisitor")
+  notifications     Notification[]     @relation("NotificationRecipient")
+  notificationsSent Notification[]     @relation("NotificationActor")
   reports           Report[]
   events            ActivityEvent[]
   coinTransactions  CoinTransaction[]
   userItems         UserItem[]
   gameSessions      GameSession[]
-  conversationsA    Conversation[]    @relation("ConversationA")
-  conversationsB    Conversation[]    @relation("ConversationB")
+  conversationsA    Conversation[]     @relation("ConversationA")
+  conversationsB    Conversation[]     @relation("ConversationB")
   messagesSent      Message[]
-  giftsSent         Gift[]            @relation("GiftSender")
-  giftsReceived     Gift[]            @relation("GiftRecipient")
+  giftsSent         Gift[]             @relation("GiftSender")
+  giftsReceived     Gift[]             @relation("GiftRecipient")
+  pushSubscriptions PushSubscription[]
 }
 
 model Session {
@@ -210,6 +211,8 @@ model UserSettings {
   notifyComments      Boolean         @default(true)
   notifyGuestbook     Boolean         @default(true)
   notifyFollows       Boolean         @default(true)
+  /// 밤 11시~아침 8시(서비스 타임존)에는 푸시를 보내지 않는다 (알림 목록에는 남음)
+  pushQuietHours      Boolean         @default(true)
   updatedAt           DateTime        @updatedAt
 }
 
@@ -618,4 +621,18 @@ model Gift {
   createdAt   DateTime @default(now())
 
   @@index([recipientId, createdAt(sort: Desc)])
+}
+
+/// 웹 푸시 구독 (기기/브라우저마다 1개)
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

@@ -6,6 +6,7 @@ import type { ShopItem } from "@/features/town/catalog";
 import type { AvatarConfig } from "@/features/avatar/schema";
 import { giftItem } from "@/features/town/actions";
 import { brand } from "@/config/brand";
+import { josa } from "@/lib/josa";
 import { cn } from "@/lib/cn";
 import { Dialog } from "@/components/ui/dialog";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -46,7 +47,7 @@ export function GiftDialog({ item, friends, balance, onClose, onSent }: { item: 
               })
             }
           >
-            {enough ? "선물 보내기" : `${c.name}이 부족해요`}
+            {enough ? "선물 보내기" : `${josa(c.name, "이", "가")} 부족해요`}
           </Button>
         ) : undefined
       }

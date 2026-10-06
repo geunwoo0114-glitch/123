@@ -10,6 +10,7 @@ import { serviceDay } from "@/lib/dates";
 import { fail, messages, ok, type ActionResult } from "@/lib/action";
 import { avatarSchema } from "@/features/avatar/schema";
 import { brand } from "@/config/brand";
+import { josa } from "@/lib/josa";
 import { economy, gameIds, games, type GameId } from "./games";
 import { itemById, missingItems, missingRoomItems } from "./catalog";
 import { roomSchema } from "@/features/room/schema";
@@ -99,7 +100,7 @@ export async function buyItem(itemId: string): Promise<ActionResult<{ coins: num
     revalidatePath("/town", "layout");
     return ok({ coins }, item.kind === "room" ? `${item.name}을(를) 샀어요! 미니룸에 놓아 보세요.` : `${item.name}을(를) 샀어요! 옷장에서 입어보세요.`);
   } catch (e) {
-    if (e instanceof InsufficientCoins) return fail(`${c.name}이 부족해요. 미니게임으로 모아보세요!`);
+    if (e instanceof InsufficientCoins) return fail(`${josa(c.name, "이", "가")} 부족해요. 미니게임으로 모아보세요!`);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("이미 갖고 있는 아이템이에요.");
     throw e;
   }
@@ -163,7 +164,7 @@ export async function giftItem(input: z.input<typeof giftSchema>): Promise<Actio
     revalidatePath("/town", "layout");
     return ok({ coins: coins.coins }, `${item.name}을(를) 선물했어요! 🎁`);
   } catch (e) {
-    if (e instanceof InsufficientCoins) return fail(`${c.name}이 부족해요. 미니게임으로 모아보세요!`);
+    if (e instanceof InsufficientCoins) return fail(`${josa(c.name, "이", "가")} 부족해요. 미니게임으로 모아보세요!`);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("친구가 이미 갖고 있는 아이템이에요.");
     throw e;
   }

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { listBlocked } from "@/features/relationships/queries";
 import { PrivacyForm } from "@/components/settings/privacy-form";
 import { BlockedList } from "@/components/settings/blocked-list";
+import { PushSettings } from "@/components/settings/push-settings";
 
 export default async function PrivacySettingsPage() {
   const me = await requireOnboardedUser("/settings/privacy");
@@ -24,6 +25,7 @@ export default async function PrivacySettingsPage() {
           notifyFollows: settings?.notifyFollows ?? true,
         }}
       />
+      <PushSettings quietHours={settings?.pushQuietHours ?? true} />
       <BlockedList users={blocked} />
     </div>
   );

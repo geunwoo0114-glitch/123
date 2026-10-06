@@ -20,6 +20,7 @@ import { FeedList } from "@/components/home/feed-list";
 import { StatusStrip } from "@/components/home/status-strip";
 import { SuggestionList } from "@/components/home/suggestions";
 import { Landing } from "@/components/home/landing";
+import { InstallCard } from "@/components/pwa/install-card";
 
 const iconLink = "flex size-10 items-center justify-center rounded-full text-fg-muted hover:bg-surface-muted";
 
@@ -63,6 +64,7 @@ export default async function HomePage() {
       <div className="mx-auto flex max-w-6xl gap-8 px-4 pt-2 pb-10 lg:pt-6">
         <div className="mx-auto w-full max-w-[600px] min-w-0">
           <StatusStrip me={me} friends={strip} />
+          <InstallCard />
 
           <Link href="/write" className="space-card mt-4 flex items-center gap-3 p-4 transition-shadow hover:shadow-3">
             <Avatar name={me.displayName} avatarKey={me.avatarKey} minimi={me.minimi} size="md" />

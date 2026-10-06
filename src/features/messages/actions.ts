@@ -11,6 +11,7 @@ import { canSendMessage } from "@/features/privacy/policy";
 import { getRelation, orderPair } from "@/features/relationships/queries";
 import { listMessages, type MessageDTO } from "./queries";
 import { appConfig } from "@/config/app";
+import { sendPush } from "@/features/push/service";
 
 const MESSAGE_MAX = appConfig.limits.message;
 
@@ -63,6 +64,7 @@ export async function sendMessage(input: z.input<typeof sendSchema>): Promise<Ac
     });
     return m;
   });
+  void sendPush(toUserId, { title: `${me.displayName}님의 쪽지`, body: body.slice(0, 120), url: `/messages/${me.username}`, tag: `dm:${me.id}` });
   revalidatePath("/messages", "layout");
   return ok({ id: created.id, body: created.body, createdAt: created.createdAt.toISOString(), mine: true });
 }
