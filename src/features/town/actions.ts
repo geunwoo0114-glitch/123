@@ -13,6 +13,9 @@ import { brand } from "@/config/brand";
 import { economy, gameIds, games, type GameId } from "./games";
 import { itemById, missingItems } from "./catalog";
 import { attendanceStreak, grantCoins, ownedItemIds, todayGameEarnings } from "./service";
+import { checkLimit } from "@/lib/rate-limit";
+import { getRelation } from "@/features/relationships/queries";
+import { notify } from "@/features/notifications/service";
 
 const c = brand.currency;
 
@@ -114,4 +117,53 @@ export async function saveCloset(input: unknown): Promise<ActionResult> {
   await db.profile.update({ where: { userId: me.id }, data: { avatar: parsed.data } });
   revalidatePath("/", "layout");
   return ok(undefined, "미니미를 새로 꾸몄어요!");
+}
+
+const giftSchema = z.object({
+  itemId: z.string().min(1).max(40),
+  toUserId: z.string().min(1).max(40),
+  message: z.string().trim().max(80, "80자까지 쓸 수 있어요.").default(""),
+});
+
+/**
+ * 친구에게 미니미 아이템 선물하기 (싸이월드 '선물' 감성).
+ * 내 밤톨을 차감하고 친구의 옷장에 아이템을 넣는다. 친구가 이미 갖고 있으면 전체를 되돌린다.
+ */
+export async function giftItem(input: z.input<typeof giftSchema>): Promise<ActionResult<{ coins: number }>> {
+  const me = await getCurrentUser();
+  if (!me) return fail(messages.unauthorized);
+  const parsed = giftSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.");
+  const { itemId, toUserId, message } = parsed.data;
+  const item = itemById(itemId);
+  if (!item || item.price === 0) return fail("선물할 수 없는 아이템이에요.");
+  if (toUserId === me.id) return fail("나에게는 선물할 수 없어요. 상점에서 바로 사 보세요!");
+  if (!(await checkLimit("gift", me.id))) return fail(messages.rateLimited);
+  const rel = await getRelation(me.id, toUserId);
+  if (rel.state !== "FRIENDS") return fail("친구에게만 선물할 수 있어요.");
+
+  try {
+    const coins = await db.$transaction(async (tx) => {
+      const paid = await tx.user.updateMany({ where: { id: me.id, coins: { gte: item.price } }, data: { coins: { decrement: item.price } } });
+      if (paid.count === 0) throw new InsufficientCoins();
+      await tx.userItem.create({ data: { userId: toUserId, itemId: item.id } });
+      const gift = await tx.gift.create({ data: { senderId: me.id, recipientId: toUserId, itemId: item.id, price: item.price, message } });
+      await tx.coinTransaction.create({ data: { userId: me.id, amount: -item.price, reason: "GIFT_SENT", refId: `gift:${gift.id}` } });
+      return { coins: (await tx.user.findUniqueOrThrow({ where: { id: me.id }, select: { coins: true } })).coins, giftId: gift.id };
+    });
+    await notify({
+      recipientId: toUserId,
+      actorId: me.id,
+      type: "GIFT",
+      targetId: item.id,
+      dedupeKey: `gift:${coins.giftId}`,
+      preview: message ? `${item.name} · "${message}"` : item.name,
+    });
+    revalidatePath("/town", "layout");
+    return ok({ coins: coins.coins }, `${item.name}을(를) 선물했어요! 🎁`);
+  } catch (e) {
+    if (e instanceof InsufficientCoins) return fail(`${c.name}이 부족해요. 미니게임으로 모아보세요!`);
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("친구가 이미 갖고 있는 아이템이에요.");
+    throw e;
+  }
 }

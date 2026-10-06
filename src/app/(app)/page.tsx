@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Gamepad2, Users } from "lucide-react";
+import { Gamepad2, Mail, Users } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { serviceDay } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { getFriendsStatusStrip, getHomeFeed } from "@/features/feed/queries";
 import { suggestFriends, countIncomingRequests } from "@/features/relationships/queries";
 import { visitStats } from "@/features/visits/service";
+import { countUnreadConversations } from "@/features/messages/queries";
 import { getWallet } from "@/features/town/service";
 import { promptForDay } from "@/features/diary/schemas";
 import { userCardSelect, toUserCard } from "@/features/users/card";
@@ -27,7 +28,7 @@ export default async function HomePage() {
   if (!user) return <Landing />;
   if (!user.onboarded) redirect("/onboarding");
 
-  const [meRow, feed, strip, suggestions, stats, wallet, requests] = await Promise.all([
+  const [meRow, feed, strip, suggestions, stats, wallet, requests, dms] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: user.id }, select: userCardSelect }),
     getHomeFeed(user.id),
     getFriendsStatusStrip(user.id),
@@ -35,6 +36,7 @@ export default async function HomePage() {
     visitStats(user.id),
     getWallet(user.id),
     countIncomingRequests(user.id),
+    countUnreadConversations(user.id),
   ]);
   const me = toUserCard(meRow);
   const prompt = promptForDay(serviceDay());
@@ -46,6 +48,10 @@ export default async function HomePage() {
           <>
             <Link href="/town" aria-label={brand.townName} className={iconLink}>
               <Gamepad2 className="size-5" />
+            </Link>
+            <Link href="/messages" className={`relative ${iconLink}`} aria-label={`쪽지${dms ? `, 안 읽은 대화 ${dms}개` : ""}`}>
+              <Mail className="size-5" />
+              {dms > 0 && <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />}
             </Link>
             <Link href="/friends" className={`relative ${iconLink}`} aria-label={`친구${requests ? `, 받은 신청 ${requests}개` : ""}`}>
               <Users className="size-5" />

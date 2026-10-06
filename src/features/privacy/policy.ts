@@ -4,6 +4,7 @@
  */
 export type Visibility = "PUBLIC" | "FRIENDS" | "CLOSE_FRIENDS" | "PRIVATE";
 export type GuestbookPolicy = "EVERYONE" | "FRIENDS" | "NOBODY";
+export type MessagePolicy = "EVERYONE" | "FRIENDS" | "NOBODY";
 
 export type FriendState = "SELF" | "NONE" | "REQUEST_SENT" | "REQUEST_RECEIVED" | "FRIENDS" | "BLOCKED" | "BLOCKED_BY";
 
@@ -49,6 +50,17 @@ export function canViewSpace(r: Relation, spaceVisibility: Visibility): boolean 
 }
 
 export function canWriteGuestbook(r: Relation, policy: GuestbookPolicy): boolean {
+  if (!r.viewerId || isSelf(r) || isBlocked(r)) return false;
+  if (policy === "NOBODY") return false;
+  if (policy === "FRIENDS") return isFriend(r);
+  return true;
+}
+
+/**
+ * 쪽지 보내기. 기본 정책은 '친구만'이라 낯선 사람의 스팸 쪽지를 막는다.
+ * 이미 오간 대화가 있어도 정책/차단이 바뀌면 새 쪽지는 보낼 수 없다.
+ */
+export function canSendMessage(r: Relation, policy: MessagePolicy): boolean {
   if (!r.viewerId || isSelf(r) || isBlocked(r)) return false;
   if (policy === "NOBODY") return false;
   if (policy === "FRIENDS") return isFriend(r);

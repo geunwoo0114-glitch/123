@@ -13,6 +13,7 @@ export default async function PrivacySettingsPage() {
         initial={{
           spaceVisibility: settings?.spaceVisibility === "FRIENDS" || settings?.spaceVisibility === "PRIVATE" ? settings.spaceVisibility : "PUBLIC",
           guestbookPolicy: settings?.guestbookPolicy ?? "EVERYONE",
+          messagePolicy: settings?.messagePolicy ?? "FRIENDS",
           leaveVisitTraces: settings?.leaveVisitTraces ?? true,
           showVisitorsPublic: settings?.showVisitorsPublic ?? false,
           discoverable: settings?.discoverable ?? true,

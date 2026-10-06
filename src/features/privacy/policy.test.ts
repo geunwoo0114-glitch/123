@@ -5,6 +5,7 @@ import {
   canReadGuestbookEntry,
   canViewContent,
   canWriteGuestbook,
+  canSendMessage,
   visibleLevels,
   type Relation,
 } from "./policy";
@@ -73,5 +74,20 @@ describe("comments", () => {
     expect(canDeleteComment("c", { authorId: "c" }, { authorId: "p" })).toBe(true);
     expect(canDeleteComment("p", { authorId: "c" }, { authorId: "p" })).toBe(true);
     expect(canDeleteComment("x", { authorId: "c" }, { authorId: "p" })).toBe(false);
+  });
+});
+
+describe("messages", () => {
+  it("기본(친구만) 정책에서는 친구만 쪽지를 보낼 수 있다", () => {
+    expect(canSendMessage(rel("FRIENDS"), "FRIENDS")).toBe(true);
+    expect(canSendMessage(rel("NONE"), "FRIENDS")).toBe(false);
+    expect(canSendMessage(rel("REQUEST_SENT"), "FRIENDS")).toBe(false);
+  });
+  it("누구나 정책이어도 차단/비로그인/본인은 불가, 닫힘이면 친구도 불가", () => {
+    expect(canSendMessage(rel("NONE"), "EVERYONE")).toBe(true);
+    expect(canSendMessage(rel("BLOCKED_BY"), "EVERYONE")).toBe(false);
+    expect(canSendMessage(rel("NONE", { viewerId: null }), "EVERYONE")).toBe(false);
+    expect(canSendMessage(rel("SELF"), "EVERYONE")).toBe(false);
+    expect(canSendMessage(rel("FRIENDS"), "NOBODY")).toBe(false);
   });
 });

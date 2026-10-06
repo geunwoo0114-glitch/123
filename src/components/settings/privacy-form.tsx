@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 type State = {
   spaceVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
   guestbookPolicy: "EVERYONE" | "FRIENDS" | "NOBODY";
+  messagePolicy: "EVERYONE" | "FRIENDS" | "NOBODY";
   leaveVisitTraces: boolean;
   showVisitorsPublic: boolean;
   discoverable: boolean;
@@ -39,7 +40,7 @@ export function PrivacyForm({ initial }: { initial: State }) {
       }}
     >
       <section className="space-card p-5">
-        <h2 className="mb-3 text-title font-bold">공간과 방명록</h2>
+        <h2 className="mb-3 text-title font-bold">공간 · 방명록 · 쪽지</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Select label="내 공간 둘러보기" value={s.spaceVisibility} onChange={(e) => set("spaceVisibility")(e.target.value as State["spaceVisibility"])} hint="비공개여도 프로필 카드(이름·미니미·상태)는 보여요.">
             <option value="PUBLIC">누구나</option>
@@ -50,6 +51,11 @@ export function PrivacyForm({ initial }: { initial: State }) {
             <option value="EVERYONE">로그인한 누구나</option>
             <option value="FRIENDS">친구만</option>
             <option value="NOBODY">닫아두기</option>
+          </Select>
+          <Select label="쪽지 받기" value={s.messagePolicy} onChange={(e) => set("messagePolicy")(e.target.value as State["messagePolicy"])} hint="모르는 사람의 쪽지가 부담되면 '친구만'을 추천해요.">
+            <option value="FRIENDS">친구만</option>
+            <option value="EVERYONE">로그인한 누구나</option>
+            <option value="NOBODY">받지 않기</option>
           </Select>
         </div>
       </section>

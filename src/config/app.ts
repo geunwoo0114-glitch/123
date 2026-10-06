@@ -31,6 +31,7 @@ export const appConfig = {
     photosPerUpload: 20,
     interests: 8,
     tags: 10,
+    message: 1000,
   },
   upload: {
     maxBytes: 12 * 1024 * 1024,

@@ -190,6 +190,23 @@ async function main() {
   // 상점 아이템 몇 개
   await db.userItem.createMany({ data: [{ userId: id("minji"), itemId: "hair:22" }, { userId: id("minji"), itemId: "body:12" }, { userId: id("sena"), itemId: "hair:44" }, { userId: id("sena"), itemId: "body:22" }, { userId: id("sena"), itemId: "bodyIcon:2" }] });
 
+  // 쪽지: 민지 ↔ 하루
+  {
+    const [A, B] = pair("minji", "haru");
+    const conv = await db.conversation.create({ data: { userAId: A, userBId: B } });
+    const lines: [string, string, number][] = [
+      ["haru", "민지야 제주 사진 봤어? 다음엔 같이 가자 ✈️", 26],
+      ["minji", "봤지!! 바다 색 미쳤더라. 겨울에 갈까?", 25.5],
+      ["haru", "좋아 좋아. 그 전에 카페부터 ㅋㅋ", 3],
+    ];
+    for (const [who, body, h] of lines) await db.message.create({ data: { conversationId: conv.id, senderId: id(who), body, createdAt: ago(h) } });
+    await db.conversation.update({ where: { id: conv.id }, data: { lastMessageAt: ago(3), lastPreview: lines[2][1], lastSenderId: id("haru") } });
+  }
+  // 선물: 세나 → 민지
+  await db.userItem.create({ data: { userId: id("minji"), itemId: "glasses:4" } });
+  await db.gift.create({ data: { senderId: id("sena"), recipientId: id("minji"), itemId: "glasses:4", price: 40, message: "카페메이트에게 🕶️", createdAt: ago(2) } });
+  await db.notification.create({ data: { recipientId: id("minji"), actorId: id("sena"), type: "GIFT", targetId: "glasses:4", dedupeKey: `seed-gift-${Date.now()}`, preview: "안경 No.04 · \"카페메이트에게 🕶️\"" } });
+
   console.log(`✔ 시드 완료. 데모 로그인: minji / ${PASSWORD}`);
 }
 

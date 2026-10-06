@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { parseAvatar, type AvatarConfig } from "@/features/avatar/schema";
-import { canViewSpace, canWriteGuestbook, type Relation } from "@/features/privacy/policy";
+import { canSendMessage, canViewSpace, canWriteGuestbook, type Relation } from "@/features/privacy/policy";
 import { countFriends, getFriendLabel, getRelation } from "@/features/relationships/queries";
 import { mediaSelect, type MediaDTO } from "@/features/media/service";
 import { normalizeWidgets, type WidgetSetting } from "./themes";
@@ -30,6 +30,7 @@ export type SpaceDTO = {
   friendLabel: string | null;
   canView: boolean;
   canWriteGuestbook: boolean;
+  canMessage: boolean;
   guestbookPolicy: string;
   showVisitorsPublic: boolean;
   counts: { friends: number; followers: number; following: number };
@@ -57,7 +58,7 @@ export const getSpace = cache(async (username: string, viewerId: string | null):
         },
       },
       space: true,
-      settings: { select: { spaceVisibility: true, guestbookPolicy: true, showVisitorsPublic: true } },
+      settings: { select: { spaceVisibility: true, guestbookPolicy: true, showVisitorsPublic: true, messagePolicy: true } },
     },
   });
   if (!user || user.status !== "ACTIVE" || !user.profile) return null;
@@ -104,6 +105,7 @@ export const getSpace = cache(async (username: string, viewerId: string | null):
     friendLabel,
     canView: canViewSpace(relation, spaceVisibility),
     canWriteGuestbook: canWriteGuestbook(relation, user.settings?.guestbookPolicy ?? "EVERYONE"),
+    canMessage: canSendMessage(relation, user.settings?.messagePolicy ?? "FRIENDS"),
     guestbookPolicy: user.settings?.guestbookPolicy ?? "EVERYONE",
     showVisitorsPublic: user.settings?.showVisitorsPublic ?? false,
     counts: { friends, followers, following },

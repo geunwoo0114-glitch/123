@@ -36,6 +36,8 @@ export const limits = {
   upload: [60, 10 * 60],
   report: [20, 60 * 60],
   follow: [60, 60 * 60],
+  message: [60, 10 * 60],
+  gift: [20, 60 * 60],
 } as const satisfies Record<string, readonly [number, number]>;
 
 /** 테스트/스테이징에서 한도를 늘리기 위한 배수 (기본 1, production에서는 설정하지 않는다) */

@@ -101,6 +101,7 @@ export async function updateSpace(input: z.input<typeof spaceSchema>): Promise<A
 const privacySchema = z.object({
   spaceVisibility: visibilitySchema.exclude(["CLOSE_FRIENDS"]),
   guestbookPolicy: z.enum(["EVERYONE", "FRIENDS", "NOBODY"]),
+  messagePolicy: z.enum(["EVERYONE", "FRIENDS", "NOBODY"]),
   leaveVisitTraces: z.boolean(),
   showVisitorsPublic: z.boolean(),
   discoverable: z.boolean(),

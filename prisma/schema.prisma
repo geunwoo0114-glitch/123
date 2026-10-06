@@ -32,6 +32,13 @@ enum Visibility {
 }
 
 /// 방명록을 쓸 수 있는 사람
+/// 쪽지를 보낼 수 있는 사람
+enum MessagePolicy {
+  EVERYONE
+  FRIENDS
+  NOBODY
+}
+
 enum GuestbookPolicy {
   EVERYONE
   FRIENDS
@@ -52,6 +59,7 @@ enum NotificationType {
   COMMENT_REPLY
   GUESTBOOK
   GUESTBOOK_REPLY
+  GIFT
 }
 
 enum ReportTarget {
@@ -120,6 +128,11 @@ model User {
   coinTransactions  CoinTransaction[]
   userItems         UserItem[]
   gameSessions      GameSession[]
+  conversationsA    Conversation[]    @relation("ConversationA")
+  conversationsB    Conversation[]    @relation("ConversationB")
+  messagesSent      Message[]
+  giftsSent         Gift[]            @relation("GiftSender")
+  giftsReceived     Gift[]            @relation("GiftRecipient")
 }
 
 model Session {
@@ -183,6 +196,7 @@ model UserSettings {
   /// 공간(홈) 기본 공개 범위 - 비공개면 친구가 아닌 사람은 프로필 카드만 볼 수 있음
   spaceVisibility     Visibility      @default(PUBLIC)
   guestbookPolicy     GuestbookPolicy @default(EVERYONE)
+  messagePolicy       MessagePolicy   @default(FRIENDS)
   /// 내가 다른 공간에 방문할 때 '방문 흔적'을 남길지
   leaveVisitTraces    Boolean         @default(true)
   /// 내 공간에 남은 방문 흔적을 공개할지(꺼져 있으면 나만 봄)
@@ -508,6 +522,7 @@ enum CoinReason {
   ATTENDANCE
   GAME
   PURCHASE
+  GIFT_SENT
   ADMIN
 }
 
@@ -549,4 +564,56 @@ model GameSession {
   reward     Int?
 
   @@index([userId, startedAt(sort: Desc)])
+}
+
+/// 1:1 쪽지방. (userAId < userBId)로 정규화해 쌍마다 1개.
+model Conversation {
+  id            String    @id @default(cuid())
+  userAId       String
+  userBId       String
+  userA         User      @relation("ConversationA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB         User      @relation("ConversationB", fields: [userBId], references: [id], onDelete: Cascade)
+  lastMessageAt DateTime  @default(now())
+  lastPreview   String    @default("")
+  lastSenderId  String?
+  /// 각자 마지막으로 읽은 시각 (안 읽은 쪽지 계산)
+  aReadAt       DateTime?
+  bReadAt       DateTime?
+  /// 각자 '대화 나가기'한 시각. 그 이전 쪽지는 그 사람에게 숨긴다
+  aClearedAt    DateTime?
+  bClearedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  messages Message[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, lastMessageAt(sort: Desc)])
+  @@index([userBId, lastMessageAt(sort: Desc)])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt(sort: Desc)])
+}
+
+/// 미니미 아이템 선물 기록
+model Gift {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String
+  sender      User     @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("GiftRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  itemId      String
+  price       Int
+  message     String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([recipientId, createdAt(sort: Desc)])
 }

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, UserCheck, Clock, Check, Bell, BellOff, Palette, PenLine } from "lucide-react";
+import { UserPlus, UserCheck, Clock, Check, Bell, BellOff, Palette, PenLine, Mail } from "lucide-react";
 import type { Relation } from "@/features/privacy/policy";
 import { removeFriendship, respondFriendRequest, sendFriendRequest, setBlock, setFollow, setFriendLabel, toggleCloseFriend } from "@/features/relationships/actions";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -14,9 +14,9 @@ import { useToast } from "@/components/ui/toast";
 import { ReportDialog } from "@/components/content/report-dialog";
 import { brand } from "@/config/brand";
 
-type Props = { ownerId: string; ownerName: string; relation: Relation; friendLabel: string | null; loggedIn: boolean };
+type Props = { ownerId: string; ownerName: string; ownerUsername: string; relation: Relation; friendLabel: string | null; loggedIn: boolean; canMessage: boolean };
 
-export function RelationActions({ ownerId, ownerName, relation, friendLabel, loggedIn }: Props) {
+export function RelationActions({ ownerId, ownerName, ownerUsername, relation, friendLabel, loggedIn, canMessage }: Props) {
   const [pending, start] = useTransition();
   const [dialog, setDialog] = useState<null | "request" | "label" | "unfriend" | "block" | "report">(null);
   const [label, setLabel] = useState(friendLabel ?? "");
@@ -112,8 +112,13 @@ export function RelationActions({ ownerId, ownerName, relation, friendLabel, log
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {primary}
+      {canMessage && (
+        <ButtonLink href={`/messages/${ownerUsername}`} variant="secondary" icon={<Mail className="size-4" />} aria-label={`${ownerName}에게 쪽지 보내기`}>
+          쪽지
+        </ButtonLink>
+      )}
       {relation.state !== "BLOCKED" && relation.state !== "FRIENDS" && (
         <Button
           variant="secondary"

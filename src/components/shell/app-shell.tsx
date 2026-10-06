@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { countUnread } from "@/features/notifications/service";
 import { countIncomingRequests } from "@/features/relationships/queries";
+import { countUnreadConversations } from "@/features/messages/queries";
 import { parseAvatar } from "@/features/avatar/schema";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
@@ -38,16 +39,17 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const [unread, requests, profile] = await Promise.all([
+  const [unread, requests, profile, dms] = await Promise.all([
     countUnread(user.id),
     countIncomingRequests(user.id),
     db.profile.findUnique({ where: { userId: user.id }, select: { avatar: true } }),
+    countUnreadConversations(user.id),
   ]);
   const me = { username: user.username, displayName: user.displayName, avatarKey: user.avatarKey, minimi: parseAvatar(profile?.avatar) };
 
   return (
     <div className="lg:flex">
-      <SideNav me={me} unread={unread} requests={requests} />
+      <SideNav me={me} unread={unread} requests={requests} dms={dms} />
       <main id="main" className="min-w-0 flex-1">
         {children}
         <div className="mobile-nav-spacer lg:hidden" />

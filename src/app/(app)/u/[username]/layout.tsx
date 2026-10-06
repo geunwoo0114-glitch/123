@@ -108,7 +108,7 @@ export default async function SpaceLayout({ children, params }: LayoutProps<"/u/
       </div>
 
       <div className="hide-compact">
-        <RelationActions ownerId={owner.id} ownerName={owner.displayName} relation={relation} friendLabel={space.friendLabel} loggedIn={!!viewer} />
+        <RelationActions ownerId={owner.id} ownerName={owner.displayName} ownerUsername={owner.username} relation={relation} friendLabel={space.friendLabel} loggedIn={!!viewer} canMessage={space.canMessage} />
       </div>
     </div>
   );

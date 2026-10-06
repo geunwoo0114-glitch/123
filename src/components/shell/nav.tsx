@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Bell, Compass, Home, PenLine, Settings, Users, BookHeart, Images, NotebookPen, LogOut, Gamepad2 } from "lucide-react";
+import { Bell, Compass, Home, PenLine, Settings, Users, BookHeart, Images, NotebookPen, LogOut, Gamepad2, Mail } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
 import { Logo } from "@/components/brand/logo";
@@ -56,13 +56,14 @@ export function ComposeDialog({ open, onClose }: { open: boolean; onClose: () =>
   );
 }
 
-export function SideNav({ me, unread, requests }: { me: Me; unread: number; requests: number }) {
+export function SideNav({ me, unread, requests, dms }: { me: Me; unread: number; requests: number; dms: number }) {
   const isActive = useActive();
   const [compose, setCompose] = useState(false);
   const items = [
     { href: "/", label: "홈", icon: Home },
     { href: "/explore", label: "둘러보기", icon: Compass },
     { href: "/friends", label: "친구", icon: Users, count: requests },
+    { href: "/messages", label: "쪽지", icon: Mail, count: dms },
     { href: "/notifications", label: "알림", icon: Bell, count: unread },
     { href: "/town", label: brand.townName, icon: Gamepad2 },
     { href: `/@${me.username}`, match: `/u/${me.username}`, label: `내 ${brand.spaceNoun}`, icon: BookHeart },

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Heart, MessageCircle, UserPlus, UserCheck, MessageSquareHeart, CornerDownRight, Rss } from "lucide-react";
+import { Bell, Heart, MessageCircle, UserPlus, UserCheck, MessageSquareHeart, CornerDownRight, Rss, Gift } from "lucide-react";
 import type { NotificationDTO } from "@/features/notifications/queries";
 import { markAllNotificationsRead } from "@/features/notifications/actions";
 import { loadNotificationsPage } from "@/features/feed/actions";
@@ -22,6 +22,7 @@ const config: Record<string, { icon: typeof Bell; text: string; color: string }>
   COMMENT_REPLY: { icon: CornerDownRight, text: "님이 내 댓글에 답글을 남겼어요", color: "text-primary" },
   GUESTBOOK: { icon: MessageSquareHeart, text: "님이 내 방명록에 흔적을 남겼어요", color: "text-accent" },
   GUESTBOOK_REPLY: { icon: MessageSquareHeart, text: "님이 방명록에 답글을 달았어요", color: "text-accent" },
+  GIFT: { icon: Gift, text: "님이 미니미 아이템을 선물했어요 🎁", color: "text-primary" },
 };
 
 function hrefFor(n: NotificationDTO, myUsername: string) {
@@ -33,6 +34,8 @@ function hrefFor(n: NotificationDTO, myUsername: string) {
       return `/@${n.actor.username}`;
     case "GUESTBOOK":
       return `/@${myUsername}/guestbook`;
+    case "GIFT":
+      return "/town/closet";
     case "GUESTBOOK_REPLY":
       return `/@${n.actor.username}/guestbook`;
     default:

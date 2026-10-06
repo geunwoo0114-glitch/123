@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Gift } from "lucide-react";
 import { catalog, rarityLabel, shopSlots, type ShopItem, type ShopSlot } from "@/features/town/catalog";
 import { buyItem } from "@/features/town/actions";
 import { minimiUrl, minimiBackgrounds, type AvatarConfig } from "@/features/avatar/schema";
@@ -11,14 +11,16 @@ import { Badge } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { brand } from "@/config/brand";
 import { cn } from "@/lib/cn";
+import { GiftDialog, type GiftFriend } from "./gift-dialog";
 
 const rarityTone = { basic: "neutral", common: "neutral", rare: "accent", special: "warning" } as const;
 
-export function ShopView({ avatar, owned, coins, name }: { avatar: AvatarConfig; owned: string[]; coins: number; name: string }) {
+export function ShopView({ avatar, owned, coins, name, friends }: { avatar: AvatarConfig; owned: string[]; coins: number; name: string; friends: GiftFriend[] }) {
   const [slot, setSlot] = useState<ShopSlot>("hair");
   const [preview, setPreview] = useState<ShopItem | null>(null);
   const [ownedSet, setOwnedSet] = useState(() => new Set(owned));
   const [balance, setBalance] = useState(coins);
+  const [gift, setGift] = useState<ShopItem | null>(null);
   const [filter, setFilter] = useState<"all" | "buyable" | "owned">("all");
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -110,7 +112,14 @@ export function ShopView({ avatar, owned, coins, name }: { avatar: AvatarConfig;
                   </Badge>
                 </button>
                 <div className="flex flex-1 flex-col gap-2 p-3">
-                  <p className="truncate text-caption font-semibold">{item.name}</p>
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="truncate text-caption font-semibold">{item.name}</p>
+                    {item.price > 0 && (
+                      <button type="button" onClick={() => setGift(item)} aria-label={`${item.name} 친구에게 선물하기`} title="선물하기" className="-mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-fg-muted hover:bg-primary-soft hover:text-primary">
+                        <Gift className="size-4" />
+                      </button>
+                    )}
+                  </div>
                   {has ? (
                     <span className="mt-auto inline-flex h-8 items-center justify-center gap-1 rounded-sm bg-success-soft text-caption font-semibold text-success">
                       <Check className="size-4" /> {item.price === 0 ? "기본" : "보유 중"}
@@ -126,6 +135,7 @@ export function ShopView({ avatar, owned, coins, name }: { avatar: AvatarConfig;
           })}
         </ul>
       </div>
+      {gift && <GiftDialog item={gift} friends={friends} balance={balance} onClose={() => setGift(null)} onSent={(c) => { setBalance(c); router.refresh(); }} />}
     </div>
   );
 }
