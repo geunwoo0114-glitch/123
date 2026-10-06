@@ -57,9 +57,9 @@ const day = (offset: number) => {
 const ago = (hours: number) => new Date(Date.now() - hours * 3600 * 1000);
 
 const people = [
-  { username: "minji", name: "민지", status: "오늘도 열심히", emoji: "☕", bio: "카페 탐방러. 기록하는 걸 좋아해요.\n필름 카메라 입문 중 📷", interests: ["카페", "사진", "여행"], theme: "peach", bg: "dots", avatar: { hair: 22, body: 12, glasses: 0, gesture: 0, beard: 0, bodyIcon: 0, brows: 3, eyes: 2, lips: 4, nose: 2, bg: 0 } },
+  { username: "minji", name: "민지", status: "오늘도 열심히", emoji: "☕", bio: "카페 탐방러. 기록하는 걸 좋아해요.\n필름 카메라 입문 중 📷", interests: ["카페", "사진", "여행"], theme: "lavender", bg: "dots", avatar: { hair: 22, body: 12, glasses: 0, gesture: 0, beard: 0, bodyIcon: 0, brows: 3, eyes: 2, lips: 4, nose: 2, bg: 0 } },
   { username: "haru", name: "하루", status: "여행 중", emoji: "✈️", bio: "어디든 떠나는 사람", interests: ["여행", "사진", "산책"], theme: "sky", bg: "grid", avatar: { hair: 9, body: 6, glasses: 2, gesture: 0, beard: 0, bodyIcon: 0, brows: 1, eyes: 0, lips: 10, nose: 4, bg: 3 } },
-  { username: "sena", name: "세나", status: "새 플레이리스트 만드는 중", emoji: "🎧", bio: "음악 없이는 못 살아", interests: ["음악", "아이돌", "그림"], theme: "lavender", bg: "lines", avatar: { hair: 44, body: 22, glasses: 0, gesture: 0, beard: 0, bodyIcon: 2, brows: 5, eyes: 3, lips: 20, nose: 1, bg: 4 } },
+  { username: "sena", name: "세나", status: "새 플레이리스트 만드는 중", emoji: "🎧", bio: "음악 없이는 못 살아", interests: ["음악", "아이돌", "그림"], theme: "rose", bg: "lines", avatar: { hair: 44, body: 22, glasses: 0, gesture: 0, beard: 0, bodyIcon: 2, brows: 5, eyes: 3, lips: 20, nose: 1, bg: 4 } },
   { username: "doyun", name: "도윤", status: "시험기간 잠수", emoji: "📚", bio: "코딩하고 운동하는 대학생", interests: ["코딩", "운동", "게임"], theme: "mint", bg: "plain", avatar: { hair: 30, body: 4, glasses: 5, gesture: 0, beard: 0, bodyIcon: 0, brows: 8, eyes: 1, lips: 2, nose: 9, bg: 2 } },
   { username: "mina", name: "미나", status: "식물 키우기 3일차", emoji: "🌱", bio: "", interests: ["식물", "요리", "카페"], theme: "forest", bg: "checker", avatar: { hair: 52, body: 17, glasses: 0, gesture: 0, beard: 0, bodyIcon: 0, brows: 2, eyes: 4, lips: 14, nose: 3, bg: 6 } },
   { username: "jun", name: "준", status: "", emoji: "", bio: "고양이 집사", interests: ["반려동물", "영화"], theme: "butter", bg: "paper", avatar: { hair: 16, body: 9, glasses: 1, gesture: 0, beard: 3, bodyIcon: 0, brows: 10, eyes: 0, lips: 6, nose: 7, bg: 1 } },
