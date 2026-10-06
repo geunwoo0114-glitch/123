@@ -97,6 +97,26 @@ test("미니룸: 벽지를 사서 방에 붙이면 내 공간에 보인다", asy
   await expect(page.getByRole("button", { name: "밤하늘 (상점에서 구매 필요)" })).toBeDisabled();
 });
 
+test("사진 권한: 친구 공개 글의 사진은 비로그인 사용자가 주소를 알아도 볼 수 없다", async ({ page, request }) => {
+  await login(page, host);
+  await page.goto("/write");
+  await page.getByLabel("내용").fill("친구에게만 보여주는 사진");
+  await page.locator('input[type="file"]').setInputFiles({ name: "secret.jpg", mimeType: "image/jpeg", buffer: await testImage() });
+  await expect(page.getByAltText("첨부 사진 1")).toBeVisible();
+  await page.getByRole("radio", { name: "친구 공개" }).click();
+  await page.getByRole("button", { name: "남기기", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/@${host}$`));
+
+  const img = page.locator("article", { hasText: "친구에게만 보여주는 사진" }).locator('img[src^="/media/"]').first();
+  const src = await img.getAttribute("src");
+  expect(src).toMatch(/^\/media\//);
+  // 작성자(로그인)의 브라우저에서는 실제로 이미지가 로드되고
+  await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+  // 쿠키 없는 요청(비로그인)은 볼 수 없다
+  const anon = await request.get(src!, { headers: { cookie: "" } });
+  expect(anon.status()).toBe(404);
+});
+
 test("권한: 비로그인 방문자는 친구 공개 글을 볼 수 없고, 남의 글은 수정할 수 없다", async ({ page, browser }) => {
   const ctx = await browser.newContext();
   const h = await ctx.newPage();

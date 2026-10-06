@@ -298,6 +298,7 @@ model Media {
   photos         Photo[]
 
   @@index([ownerId, createdAt])
+  @@index([thumbKey])
 }
 
 model Post {
