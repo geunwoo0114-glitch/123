@@ -9,6 +9,7 @@ import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/config/brand";
 import { SideNav, BottomNav } from "./nav";
+import { RealtimeRefresher } from "@/components/realtime/realtime-refresher";
 
 /**
  * 로그인 사용자는 사이드바(데스크톱)/하단 탭(모바일)을, 비로그인 방문자는 가벼운 상단 바를 본다.
@@ -55,6 +56,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mobile-nav-spacer lg:hidden" />
       </main>
       <BottomNav me={me} unread={unread} />
+      <RealtimeRefresher />
     </div>
   );
 }

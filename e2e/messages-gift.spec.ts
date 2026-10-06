@@ -40,10 +40,30 @@ test("친구가 아니면 쪽지를 보낼 수 없고, 친구가 되면 주고�
   // 낙관적 표시('보내는 중')가 끝나고 서버 저장이 완료될 때까지 기다린다
   await expect(pa.getByRole("log").getByText("보내는 중")).toHaveCount(0);
 
+  // 실시간(SSE): 받는 사람 브라우저의 이벤트 스트림으로 쪽지가 즉시 도착한다
+  await pb.goto("/");
+  const received = pb.evaluate(
+    () =>
+      new Promise<string>((resolve, reject) => {
+        const es = new EventSource("/api/events");
+        const t = setTimeout(() => reject(new Error("timeout")), 8000);
+        es.addEventListener("dm", (e) => {
+          clearTimeout(t);
+          es.close();
+          resolve(JSON.parse((e as MessageEvent).data).message.body);
+        });
+        es.onopen = () => (window as unknown as { __sseOpen: boolean }).__sseOpen = true;
+      }),
+  );
+  await pb.waitForFunction(() => (window as unknown as { __sseOpen?: boolean }).__sseOpen === true);
+  await pa.getByLabel("쪽지 내용").fill("실시간으로 가나요?");
+  await pa.getByLabel("쪽지 내용").press("Enter");
+  expect(await received).toBe("실시간으로 가나요?");
+
   // 받은 사람 쪽지함에 안 읽은 대화로 보이고, 답장하면 폴링으로 전달된다
   await pb.goto("/messages");
   await expect(pb.getByLabel("안 읽은 쪽지")).toBeVisible();
-  await pb.getByText("안녕! 첫 쪽지야").click();
+  await pb.getByText("실시간으로 가나요?").click();
   await pb.getByLabel("쪽지 내용").fill("반가워 :)");
   await pb.getByRole("button", { name: "보내기" }).click();
   await expect(pa.getByRole("log").getByText("반가워 :)")).toBeVisible({ timeout: 10_000 });

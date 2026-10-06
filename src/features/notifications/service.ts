@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { sendPush } from "@/features/push/service";
+import { publish } from "@/lib/realtime/hub";
 
 type NotifyInput = {
   recipientId: string;
@@ -63,7 +64,8 @@ export async function notify(input: NotifyInput): Promise<void> {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return;
       throw e;
     }
-    // 새 알림일 때만 기기 푸시 (응답을 막지 않도록 기다리지 않는다)
+    // 새 알림일 때만: 열려 있는 화면의 배지 갱신 + 기기 푸시 (응답을 막지 않도록 기다리지 않는다)
+    void publish(input.recipientId, { type: "notification" });
     void pushFor(input);
   } catch (err) {
     logger.warn("notify failed", { err, type: input.type });

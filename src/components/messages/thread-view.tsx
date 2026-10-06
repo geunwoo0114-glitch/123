@@ -16,8 +16,11 @@ import { Menu } from "@/components/ui/menu";
 import { ConfirmDialog } from "@/components/ui/confirm";
 import { useToast } from "@/components/ui/toast";
 import { ReportDialog } from "@/components/content/report-dialog";
+import { useRealtime, useRealtimeConnected } from "@/components/realtime/use-realtime";
 
+/** 실시간 연결이 없을 때의 폴링 간격 / 연결되어 있을 때의 안전망 간격 */
 const POLL_MS = 4000;
+const POLL_MS_LIVE = 30_000;
 
 type Item = MessageDTO & { pending?: boolean; failed?: boolean };
 
@@ -53,7 +56,17 @@ export function ThreadView({ other, initial, olderCursor, blockedReason }: { oth
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 최초 1회
   }, [other.id]);
 
-  // 새 쪽지 폴링 (탭이 보일 때만). 향후 SSE/WebSocket으로 교체 가능한 자리.
+  const live = useRealtimeConnected();
+
+  // 실시간: 이 상대가 보낸 쪽지가 오면 바로 붙이고 읽음 처리
+  useRealtime((event) => {
+    if (event.type !== "dm" || event.from.id !== other.id) return;
+    stickToBottom.current = true;
+    setItems((prev) => (prev.some((m) => m.id === event.message.id) ? prev : [...prev, { ...event.message, mine: false }]));
+    void markConversationRead(other.id);
+  });
+
+  // 폴링: 실시간 연결이 끊겼을 때의 대체 수단 (연결 중에는 30초 안전망)
   useEffect(() => {
     const id = setInterval(async () => {
       if (document.visibilityState !== "visible") return;
@@ -68,9 +81,9 @@ export function ThreadView({ other, initial, olderCursor, blockedReason }: { oth
       } catch {
         /* 네트워크 일시 오류는 다음 주기에 재시도 */
       }
-    }, POLL_MS);
+    }, live ? POLL_MS_LIVE : POLL_MS);
     return () => clearInterval(id);
-  }, [other.id]);
+  }, [other.id, live]);
 
   useLayoutEffect(() => {
     const el = list.current;

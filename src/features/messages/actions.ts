@@ -12,6 +12,7 @@ import { getRelation, orderPair } from "@/features/relationships/queries";
 import { listMessages, type MessageDTO } from "./queries";
 import { appConfig } from "@/config/app";
 import { sendPush } from "@/features/push/service";
+import { publish } from "@/lib/realtime/hub";
 
 const MESSAGE_MAX = appConfig.limits.message;
 
@@ -63,6 +64,11 @@ export async function sendMessage(input: z.input<typeof sendSchema>): Promise<Ac
       data: { lastMessageAt: now, lastPreview: body.slice(0, 80), lastSenderId: me.id, ...(iAmA ? { aReadAt: now } : { bReadAt: now }) },
     });
     return m;
+  });
+  await publish(toUserId, {
+    type: "dm",
+    from: { id: me.id, username: me.username },
+    message: { id: created.id, body: created.body, createdAt: created.createdAt.toISOString() },
   });
   void sendPush(toUserId, { title: `${me.displayName}님의 쪽지`, body: body.slice(0, 120), url: `/messages/${me.username}`, tag: `dm:${me.id}` });
   revalidatePath("/messages", "layout");
