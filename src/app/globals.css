@@ -284,3 +284,11 @@
     --space-soft-current: var(--space-soft-dark);
   }
 }
+
+/* 약관/방침 문서 */
+.legal h1 { font-size: var(--text-display); font-weight: 700; letter-spacing: -0.02em; }
+.legal h2 { margin-top: 2rem; font-size: var(--text-title); font-weight: 700; }
+.legal p, .legal li { margin-top: 0.5rem; color: var(--fg-muted); }
+.legal ul { list-style: disc; padding-left: 1.25rem; }
+.legal table { margin-top: 0.75rem; width: 100%; border-collapse: collapse; font-size: var(--text-caption); }
+.legal th, .legal td { border: 1px solid var(--line); padding: 0.5rem; text-align: left; vertical-align: top; }

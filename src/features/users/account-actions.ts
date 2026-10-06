@@ -2,7 +2,9 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getCurrentUser, revokeOtherSessions } from "@/lib/auth/session";
+import { destroySession, getCurrentUser, revokeOtherSessions } from "@/lib/auth/session";
+import { storage } from "@/lib/media/storage";
+import { logger } from "@/lib/logger";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { consumeAuthToken, issueAuthToken } from "@/lib/auth/tokens";
 import { appUrl, sendMail } from "@/lib/mail";
@@ -85,4 +87,39 @@ export async function changePassword(input: z.input<typeof changeSchema>): Promi
   await db.user.update({ where: { id: me.id }, data: { passwordHash: await hashPassword(parsed.data.next) } });
   await revokeOtherSessions(me.id);
   return ok(undefined, "비밀번호를 바꿨어요. 다른 기기에서는 로그아웃됐어요.");
+}
+
+const deleteSchema = z.object({
+  password: z.string().min(1, "비밀번호를 입력해 주세요.").max(128),
+  confirm: z.string().refine((v) => v === "탈퇴", "'탈퇴'라고 입력해 주세요."),
+});
+
+/**
+ * 회원 탈퇴: 계정과 모든 콘텐츠·관계·쪽지를 지우고 업로드 파일도 삭제한다.
+ * 다른 사람 글의 좋아요/댓글 수는 먼저 보정한 뒤 지운다.
+ */
+export async function deleteAccount(input: z.input<typeof deleteSchema>): Promise<ActionResult> {
+  const me = await getCurrentUser();
+  if (!me) return fail(messages.unauthorized);
+  const parsed = deleteSchema.safeParse(input);
+  if (!parsed.success) return fromZodError(parsed.error);
+  if (!(await checkLimit("login", `delete:${me.id}`))) return fail(messages.rateLimited);
+  const user = await db.user.findUnique({ where: { id: me.id }, select: { passwordHash: true, role: true } });
+  if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) return fail("비밀번호가 맞지 않아요.", { password: "비밀번호가 맞지 않아요." });
+  if (user.role === "ADMIN") return fail("운영자 계정은 여기서 탈퇴할 수 없어요.");
+
+  const media = await db.media.findMany({ where: { ownerId: me.id }, select: { key: true, thumbKey: true } });
+  await db.$transaction(async (tx) => {
+    // 다른 사람 글에 남긴 좋아요/댓글 수 보정
+    const likes = await tx.postLike.findMany({ where: { userId: me.id }, select: { postId: true } });
+    for (const { postId } of likes) await tx.post.updateMany({ where: { id: postId, likeCount: { gt: 0 } }, data: { likeCount: { decrement: 1 } } });
+    const comments = await tx.comment.groupBy({ by: ["postId"], where: { authorId: me.id, deletedAt: null }, _count: { _all: true } });
+    for (const c of comments) await tx.post.updateMany({ where: { id: c.postId }, data: { commentCount: { decrement: c._count._all } } });
+    // 나머지는 외래 키 cascade로 함께 삭제된다 (게시물·댓글·방명록·쪽지·관계·알림·세션·푸시 구독 등)
+    await tx.user.delete({ where: { id: me.id } });
+  });
+  await Promise.all(media.flatMap((m) => [storage.remove(m.key), storage.remove(m.thumbKey)]));
+  await destroySession();
+  logger.info("account deleted", { userId: me.id });
+  return ok(undefined, "탈퇴가 완료됐어요. 그동안 고마웠어요.");
 }

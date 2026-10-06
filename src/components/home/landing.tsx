@@ -67,6 +67,8 @@ export function Landing() {
         ))}
       </section>
       <p className="mt-12 text-center text-caption text-fg-subtle">
+        <Link href="/terms" className="underline">이용약관</Link> · <Link href="/privacy" className="font-semibold underline">개인정보처리방침</Link>
+        <br />
         이미 친구가 다락에 있나요? 친구에게 받은 <b>/@아이디</b> 링크로 바로 놀러 갈 수 있어요. ·{" "}
         <Link href="/explore" className="underline">
           둘러보기

@@ -71,3 +71,29 @@ test("설정에서 비밀번호 변경 (현재 비밀번호 확인)", async ({ p
   await page.getByRole("button", { name: "비밀번호 바꾸기" }).click();
   await expect(page.getByText(/비밀번호를 바꿨어요/)).toBeVisible();
 });
+
+test("회원 탈퇴: 비밀번호 확인 후 모든 정보가 지워지고 다시 로그인할 수 없다", async ({ page }) => {
+  await login(page, user, "another789");
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "탈퇴하기" }).click();
+  await page.getByLabel("비밀번호", { exact: true }).fill("another789");
+  await page.getByLabel(/탈퇴'라고 입력/).fill("탈퇴");
+  await page.getByRole("button", { name: "영구 삭제" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  // 공간이 사라지고, 로그인도 안 된다
+  const res = await page.goto(`/@${user}`);
+  await expect(page.getByRole("heading", { name: "이 방은 비어 있어요" })).toBeVisible();
+  void res;
+  await page.goto("/login");
+  await page.getByLabel("이메일 또는 아이디").fill(user);
+  await page.getByLabel("비밀번호").fill("another789");
+  await page.getByRole("button", { name: "로그인" }).click();
+  await expect(page.getByText("이메일(아이디) 또는 비밀번호가 맞지 않아요.")).toBeVisible();
+});
+
+test("약관과 개인정보처리방침 페이지가 열린다", async ({ page }) => {
+  await page.goto("/terms");
+  await expect(page.getByRole("heading", { name: /이용약관/ })).toBeVisible();
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { name: "개인정보처리방침" })).toBeVisible();
+});

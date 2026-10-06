@@ -32,7 +32,17 @@ export function SignupForm() {
       <SubmitButton size="lg" className="mt-2 w-full" pendingText="다락 짓는 중…">
         내 다락 만들기
       </SubmitButton>
-      <p className="text-center text-label text-fg-subtle">가입하면 서비스 이용약관과 개인정보 처리방침에 동의하는 것으로 간주돼요.</p>
+      <p className="text-center text-label text-fg-subtle">
+        가입하면{" "}
+        <a href="/terms" target="_blank" className="underline">
+          이용약관
+        </a>
+        과{" "}
+        <a href="/privacy" target="_blank" className="font-semibold underline">
+          개인정보처리방침
+        </a>
+        에 동의하는 것으로 봐요. 만 14세 이상만 가입할 수 있어요.
+      </p>
     </form>
   );
 }
