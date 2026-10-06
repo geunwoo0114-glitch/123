@@ -135,7 +135,7 @@ export default async function SpaceLayout({ children, params }: LayoutProps<"/u/
       )}
       <div className={cn("mx-auto max-w-6xl px-4 pb-10", theme.layoutVariant === "cover" ? "pt-0" : "pt-5 lg:pt-8")}>
         <div className={cn(theme.layoutVariant === "classic" ? "lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-6" : "")}>
-          <CompactOnSubpage className={cn("space-card mb-4 p-5", theme.layoutVariant === "classic" ? "lg:sticky lg:top-6 lg:mb-0 lg:self-start" : "-mt-6 relative lg:mx-auto lg:max-w-3xl")}>
+          <CompactOnSubpage className={cn("space-card mb-4 p-5", theme.layoutVariant === "classic" ? "lg:sticky lg:top-22 lg:mb-0 lg:self-start" : "-mt-6 relative lg:mx-auto lg:max-w-3xl")}>
             {theme.layoutVariant === "classic" && owner.cover && (
               <div className="-mx-5 -mt-5 mb-4 h-24 overflow-hidden rounded-t-[inherit]">
                 <MediaImage media={owner.cover} alt="" className="size-full" sizes="300px" />

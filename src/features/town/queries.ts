@@ -20,7 +20,7 @@ export async function getClosetState(userId: string) {
     owned: [...owned],
     coins: user?.coins ?? 0,
     room: parseRoom(space?.room),
-    themeId: space?.themeId ?? "peach",
+    themeId: space?.themeId ?? "lavender",
   };
 }
 

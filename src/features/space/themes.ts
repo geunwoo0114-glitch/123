@@ -25,11 +25,11 @@ export type SpaceTheme = {
 };
 
 export const spaceThemes = [
+  { id: "lavender", name: "라벤더", tier: "free", accent: "#6A47F0", accentDark: "#A48BFF", onAccent: "#fff", soft: "#EFEAFF", tint: "#F6F3FB", tintDark: "#1A1722", softDark: "#2D2540" },
   { id: "peach", name: "복숭아", tier: "free", accent: "#BD3916", accentDark: "#F0754F", onAccent: "#fff", soft: "#FDEBE3", tint: "#FBF3EC", tintDark: "#221A16", softDark: "#3A241B" },
   { id: "butter", name: "버터", tier: "free", accent: "#8D6007", accentDark: "#E0A93A", onAccent: "#fff", soft: "#FBF0D2", tint: "#FBF7EA", tintDark: "#1F1B12", softDark: "#382D14" },
   { id: "mint", name: "민트", tier: "free", accent: "#19775F", accentDark: "#4FC3A1", onAccent: "#fff", soft: "#DCF2EA", tint: "#F1F8F4", tintDark: "#141E1A", softDark: "#17352C" },
   { id: "sky", name: "하늘", tier: "free", accent: "#2969AC", accentDark: "#6AA8E8", onAccent: "#fff", soft: "#E0EDFA", tint: "#F1F6FB", tintDark: "#141A21", softDark: "#1A2C40" },
-  { id: "lavender", name: "라벤더", tier: "free", accent: "#7455BF", accentDark: "#A68BE6", onAccent: "#fff", soft: "#ECE5F8", tint: "#F6F3FB", tintDark: "#1A1722", softDark: "#2D2540" },
   { id: "rose", name: "로즈", tier: "free", accent: "#B83258", accentDark: "#EA7C9C", onAccent: "#fff", soft: "#FBE4EB", tint: "#FBF2F5", tintDark: "#211519", softDark: "#3D1F29" },
   { id: "forest", name: "숲", tier: "free", accent: "#49733B", accentDark: "#86B874", onAccent: "#fff", soft: "#E4EEDC", tint: "#F3F6EF", tintDark: "#161B13", softDark: "#25331D" },
   { id: "ink", name: "먹색", tier: "free", accent: "#2E2A26", accentDark: "#E9E5DF", onAccent: "#fff", soft: "#E9E5DF", tint: "#F5F3EF", tintDark: "#161514", softDark: "#2E2B28" },

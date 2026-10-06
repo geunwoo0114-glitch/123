@@ -20,7 +20,7 @@ export function SpaceTabs({ username, counts }: { username: string; counts?: Par
   const rel = pathname.replace(/^\/(@|u\/)[^/]+/, "");
   const active = (key: string) => (key === "home" ? rel === "" || rel === "/" : rel.startsWith(`/${key}`));
   return (
-    <nav aria-label="공간 메뉴" className="sticky top-14 z-20 -mx-4 border-b border-line bg-[color-mix(in_srgb,var(--space-surface-tint)_92%,transparent)] px-4 backdrop-blur lg:top-0 lg:mx-0 lg:rounded-t-lg lg:px-2">
+    <nav aria-label="공간 메뉴" className="sticky top-14 z-20 -mx-4 border-b border-line bg-[color-mix(in_srgb,var(--space-surface-tint)_92%,transparent)] px-4 backdrop-blur lg:top-16 lg:mx-0 lg:rounded-t-lg lg:px-2">
       <ul className="flex gap-1 overflow-x-auto scrollbar-none">
         {tabs.map((t) => (
           <li key={t.key}>

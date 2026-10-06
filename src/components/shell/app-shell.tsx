@@ -8,11 +8,11 @@ import { parseAvatar } from "@/features/avatar/schema";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/config/brand";
-import { SideNav, BottomNav } from "./nav";
+import { TopNav, BottomNav } from "./nav";
 import { RealtimeRefresher } from "@/components/realtime/realtime-refresher";
 
 /**
- * 로그인 사용자는 사이드바(데스크톱)/하단 탭(모바일)을, 비로그인 방문자는 가벼운 상단 바를 본다.
+ * 로그인 사용자는 상단 가로 메뉴(데스크톱)/하단 탭(모바일)을, 비로그인 방문자는 가벼운 상단 바를 본다.
  * 비로그인 방문자도 공개 공간을 둘러볼 수 있어야 '놀러 오는' 경험이 공유 링크에서 시작된다.
  */
 export async function AppShell({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <>
         <header className="sticky top-0 z-40 border-b border-line bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-6">
             <Link href="/" aria-label={`${brand.name} 홈`}>
               <Logo />
             </Link>
@@ -40,18 +40,19 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const [unread, requests, profile, dms] = await Promise.all([
+  const [unread, requests, profile, dms, wallet] = await Promise.all([
     countUnread(user.id),
     countIncomingRequests(user.id),
     db.profile.findUnique({ where: { userId: user.id }, select: { avatar: true } }),
     countUnreadConversations(user.id),
+    db.user.findUnique({ where: { id: user.id }, select: { coins: true } }),
   ]);
   const me = { isAdmin: user.role === "ADMIN", username: user.username, displayName: user.displayName, avatarKey: user.avatarKey, minimi: parseAvatar(profile?.avatar) };
 
   return (
-    <div className="lg:flex">
-      <SideNav me={me} unread={unread} requests={requests} dms={dms} />
-      <main id="main" className="min-w-0 flex-1">
+    <div>
+      <TopNav me={me} unread={unread} requests={requests} dms={dms} coins={wallet?.coins ?? 0} />
+      <main id="main" className="min-w-0">
         {children}
         <div className="mobile-nav-spacer lg:hidden" />
       </main>

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Bell, Compass, Home, PenLine, Settings, Users, BookHeart, Images, NotebookPen, LogOut, Gamepad2, Mail, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bell, Box, Compass, Home, PenLine, Search, Settings, Users, BookHeart, Images, NotebookPen, LogOut, Gamepad2, Mail, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
 import { Logo } from "@/components/brand/logo";
@@ -56,70 +56,112 @@ export function ComposeDialog({ open, onClose }: { open: boolean; onClose: () =>
   );
 }
 
-export function SideNav({ me, unread, requests, dms }: { me: Me; unread: number; requests: number; dms: number }) {
+export function TopNav({ me, unread, requests, dms, coins }: { me: Me; unread: number; requests: number; dms: number; coins: number }) {
   const isActive = useActive();
   const [compose, setCompose] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
   const items = [
     { href: "/", label: "홈", icon: Home },
     { href: "/explore", label: "둘러보기", icon: Compass },
     { href: "/friends", label: "친구", icon: Users, count: requests },
     { href: "/messages", label: "쪽지", icon: Mail, count: dms },
-    { href: "/notifications", label: "알림", icon: Bell, count: unread },
+    { href: `/@${me.username}/house`, match: `/u/${me.username}/house`, label: "2.5D 집", icon: Box },
     { href: "/town", label: brand.townName, icon: Gamepad2 },
-    { href: `/@${me.username}`, match: `/u/${me.username}`, label: `내 ${brand.spaceNoun}`, icon: BookHeart },
+    { href: `/@${me.username}`, match: `/u/${me.username}`, label: `내 ${brand.spaceNoun}`, icon: BookHeart, exact: true },
     ...(me.isAdmin ? [{ href: "/admin", label: "운영", icon: ShieldCheck }] : []),
   ];
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const close = (e: MouseEvent) => !profileRef.current?.contains(e.target as Node) && setProfileOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setProfileOpen(false);
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [profileOpen]);
+
   return (
-    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-surface px-3 py-5 lg:flex">
-      <Link href="/" className="mb-6 px-3" aria-label={`${brand.name} 홈`}>
-        <Logo />
-      </Link>
-      <nav aria-label="주요 메뉴" className="flex flex-col gap-1">
-        {items.map((item) => {
-          const active = isActive(item.href) || (item.match ? isActive(item.match) : false);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex h-11 items-center gap-3 rounded-md px-3 font-medium transition-colors",
-                active ? "bg-surface-muted font-bold text-fg" : "text-fg-muted hover:bg-surface-muted hover:text-fg",
-              )}
-            >
-              <item.icon className="size-5.5" strokeWidth={active ? 2.4 : 2} />
-              <span className="flex-1">{item.label}</span>
-              <CountDot count={item.count ?? 0} />
-            </Link>
-          );
-        })}
-      </nav>
-      <button
-        type="button"
-        onClick={() => setCompose(true)}
-        className="mt-4 flex h-11 items-center justify-center gap-2 rounded-md bg-primary font-semibold text-on-primary shadow-1 transition hover:bg-primary-hover active:scale-[0.98]"
-      >
-        <PenLine className="size-4.5" /> 기록하기
-      </button>
-      <div className="mt-auto flex items-center gap-2 rounded-md p-2">
-        <Link href={`/@${me.username}`} className="flex min-w-0 flex-1 items-center gap-2.5">
-          <Avatar name={me.displayName} avatarKey={me.avatarKey} minimi={me.minimi} size="md" />
-          <span className="min-w-0">
-            <span className="block truncate text-caption font-semibold">{me.displayName}</span>
-            <span className="block truncate text-label text-fg-subtle">@{me.username}</span>
-          </span>
+    <header className="sticky top-0 z-40 hidden border-b border-line bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-lg lg:block">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-6">
+        <Link href="/" className="shrink-0" aria-label={`${brand.name} 홈`}>
+          <Logo />
         </Link>
-        <Link href="/settings" aria-label="설정" className="rounded-full p-2 text-fg-muted hover:bg-surface-muted">
-          <Settings className="size-5" />
-        </Link>
-        <form action={logoutAction}>
-          <button type="submit" aria-label="로그아웃" className="rounded-full p-2 text-fg-muted hover:bg-surface-muted">
-            <LogOut className="size-5" />
+        <nav aria-label="주요 메뉴" className="min-w-0 flex-1">
+          <ul className="flex items-center gap-0.5">
+            {items.map((item) => {
+              const matchPath = item.match ?? item.href;
+              // '내 다락'은 2.5D 집 페이지에서는 켜지지 않게 한다
+              const active = item.exact
+                ? (isActive(item.href) || isActive(matchPath)) && !isActive(`/u/${me.username}/house`) && !isActive(`/@${me.username}/house`)
+                : isActive(item.href) || isActive(matchPath);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "relative flex h-16 items-center gap-1.5 px-2.5 text-caption font-semibold whitespace-nowrap transition-colors xl:px-3",
+                      active ? "text-primary after:absolute after:inset-x-2.5 after:bottom-0 after:h-[3px] after:rounded-full after:bg-primary" : "text-fg-muted hover:text-fg",
+                    )}
+                  >
+                    <item.icon className="size-4.5" strokeWidth={active ? 2.4 : 2} />
+                    {item.label}
+                    <CountDot count={item.count ?? 0} />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Link href="/town" className="hidden h-9 items-center gap-1.5 rounded-full bg-warning-soft px-3 text-caption font-bold text-warning tabular-nums xl:flex" aria-label={`내 ${brand.currency.name} ${coins}개`}>
+            {brand.currency.emoji} {coins.toLocaleString()}
+          </Link>
+          <button type="button" onClick={() => setCompose(true)} className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-caption font-bold text-on-primary shadow-1 transition hover:bg-primary-hover active:scale-[0.98]">
+            <PenLine className="size-4" /> 기록하기
           </button>
-        </form>
+          <Link href="/explore" aria-label="사람 찾기" className="flex size-9 items-center justify-center rounded-full text-fg-muted hover:bg-surface-muted hover:text-fg">
+            <Search className="size-5" />
+          </Link>
+          <Link href="/notifications" aria-label={`알림${unread ? ` ${unread}개` : ""}`} aria-current={isActive("/notifications") ? "page" : undefined} className="relative flex size-9 items-center justify-center rounded-full text-fg-muted hover:bg-surface-muted hover:text-fg">
+            <Bell className="size-5" />
+            {unread > 0 && <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-danger ring-2 ring-surface" aria-hidden />}
+          </Link>
+          <div ref={profileRef} className="relative">
+            <button type="button" aria-label="내 메뉴" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((o) => !o)} className="flex rounded-full ring-2 ring-primary-soft transition hover:ring-primary/40">
+              <Avatar name={me.displayName} avatarKey={me.avatarKey} minimi={me.minimi} size="sm" />
+            </button>
+            {profileOpen && (
+              <div role="menu" className="animate-fade-up absolute top-11 right-0 z-50 w-56 overflow-hidden rounded-lg border border-line bg-surface py-1.5 shadow-3">
+                <div className="border-b border-line px-4 pt-1.5 pb-2.5">
+                  <p className="truncate text-caption font-bold">{me.displayName}</p>
+                  <p className="truncate text-label text-fg-subtle">@{me.username}</p>
+                </div>
+                <Link role="menuitem" href={`/@${me.username}`} onClick={() => setProfileOpen(false)} className="flex h-10 items-center gap-2.5 px-4 text-caption hover:bg-surface-muted">
+                  <BookHeart className="size-4" /> 내 {brand.spaceNoun}
+                </Link>
+                <Link role="menuitem" href="/notifications" onClick={() => setProfileOpen(false)} className="flex h-10 items-center gap-2.5 px-4 text-caption hover:bg-surface-muted">
+                  <Bell className="size-4" /> 알림 {unread > 0 && <CountDot count={unread} />}
+                </Link>
+                <Link role="menuitem" href="/settings" onClick={() => setProfileOpen(false)} className="flex h-10 items-center gap-2.5 px-4 text-caption hover:bg-surface-muted">
+                  <Settings className="size-4" /> 설정
+                </Link>
+                <form action={logoutAction}>
+                  <button role="menuitem" type="submit" className="flex h-10 w-full items-center gap-2.5 px-4 text-caption text-danger hover:bg-surface-muted">
+                    <LogOut className="size-4" /> 로그아웃
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       <ComposeDialog open={compose} onClose={() => setCompose(false)} />
-    </aside>
+    </header>
   );
 }
 

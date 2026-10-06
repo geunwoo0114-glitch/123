@@ -10,7 +10,7 @@ export default async function SpaceSettingsPage() {
     <SpaceForm
       username={me.username}
       initial={{
-        themeId: s?.themeId ?? "peach",
+        themeId: s?.themeId ?? "lavender",
         backgroundId: s?.backgroundId ?? "paper",
         layoutVariant: s?.layoutVariant ?? "classic",
         cardStyle: s?.cardStyle ?? "soft",

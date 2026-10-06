@@ -97,7 +97,7 @@ export const getSpace = cache(async (username: string, viewerId: string | null):
       joinedAt: user.createdAt.toISOString(),
     },
     theme: {
-      themeId: space?.themeId ?? "peach",
+      themeId: space?.themeId ?? "lavender",
       backgroundId: space?.backgroundId ?? "paper",
       layoutVariant: space?.layoutVariant ?? "classic",
       cardStyle: space?.cardStyle ?? "soft",

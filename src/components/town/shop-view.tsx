@@ -76,7 +76,7 @@ export function ShopView({
 
   return (
     <div style={themeStyle(themeId) as React.CSSProperties} className="space-scope grid gap-5 md:grid-cols-[260px_minmax(0,1fr)]">
-      <aside className="space-card self-start p-4 md:sticky md:top-6">
+      <aside className="space-card self-start p-4 md:sticky md:top-6 lg:top-22">
         {mode === "avatar" ? (
           <div className="mx-auto aspect-square w-44 overflow-hidden rounded-full md:w-full" style={{ backgroundColor: minimiBackgrounds[avatar.bg] }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- 미니미 SVG 미리보기 */}

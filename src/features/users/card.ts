@@ -43,7 +43,7 @@ export function toUserCard(u: UserCardRow): UserCard {
     statusMessage: u.profile?.statusMessage ?? "",
     statusEmoji: u.profile?.statusEmoji ?? "",
     avatarKey: u.profile?.avatarMedia?.thumbKey ?? null,
-    themeId: u.space?.themeId ?? "peach",
+    themeId: u.space?.themeId ?? "lavender",
     interests: u.profile?.interests ?? [],
     minimi: parseAvatar(u.profile?.avatar),
   };

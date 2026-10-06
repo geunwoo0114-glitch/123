@@ -71,6 +71,7 @@ export function HouseView({
   presence,
   owned = [],
   coins = 0,
+  snapshot = false,
 }: {
   initial: HouseConfig;
   owner: Owner;
@@ -79,6 +80,8 @@ export function HouseView({
   presence: boolean;
   owned?: string[];
   coins?: number;
+  /** 조작 버튼·사람 없이 방만 보여 준다 */
+  snapshot?: boolean;
 }) {
   const [house, setHouse] = useState(initial);
   const [view, setView] = useState(0);
@@ -216,14 +219,14 @@ export function HouseView({
       <section className="space-card relative overflow-hidden" aria-label="2.5D 집">
         <div className="relative aspect-[4/3] w-full touch-none select-none sm:aspect-[16/10]">
           {supported ? (
-            <HouseScene house={house} view={view} owner={ownerPerson} visitors={visitors} editable={editing} selected={selected} onSelect={setSelected} onMove={onMove} label={label} />
+            <HouseScene house={house} view={view} owner={snapshot ? null : ownerPerson} visitors={visitors} editable={editing} selected={selected} onSelect={setSelected} onMove={onMove} label={label} />
           ) : (
             <p className="flex size-full items-center justify-center p-6 text-center text-body text-fg-muted">이 기기에서는 2.5D 집을 볼 수 없어요. (WebGL 미지원)</p>
           )}
         </div>
 
         {/* 보기 조작 */}
-        <div className="absolute top-3 right-3 flex gap-1.5">
+        <div className={cn("absolute top-3 right-3 flex gap-1.5", snapshot && "hidden")}>
           <IconButton label="왼쪽으로 돌려 보기" onClick={() => setView((v) => (v + 3) % 4)} className="bg-surface/90 shadow-1 backdrop-blur">
             <RotateCcw className="size-4" />
           </IconButton>
@@ -237,7 +240,7 @@ export function HouseView({
             지금 {visitors.length}명이 놀러 와 있어요
           </p>
         )}
-        {isOwner && !editing && (
+        {isOwner && !editing && !snapshot && (
           <Button className="absolute right-3 bottom-3 shadow-2" icon={<Paintbrush className="size-4" />} onClick={() => setEditing(true)}>
             집 꾸미기
           </Button>

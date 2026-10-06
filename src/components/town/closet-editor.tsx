@@ -36,7 +36,7 @@ export function ClosetEditor({ initial, owned, name }: { initial: AvatarConfig; 
 
   return (
     <div className="grid gap-5 md:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="space-card self-start p-4 md:sticky md:top-6">
+      <aside className="space-card self-start p-4 md:sticky md:top-6 lg:top-22">
         <div className="mx-auto aspect-square w-48 overflow-hidden rounded-full md:w-full" style={{ backgroundColor: minimiBackgrounds[config.bg] }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 미니미 미리보기 */}
           <img src={minimiUrl(config)} alt={`${name}의 미니미`} className="size-full translate-y-[4%]" />

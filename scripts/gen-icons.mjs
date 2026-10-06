@@ -9,7 +9,7 @@ await sharp(svg, { density: 512 }).resize(180, 180).png().toFile(`${out}/apple-t
 
 // maskable: 안전 영역(80%) 안에 들어가도록 여백 추가
 const inner = await sharp(svg, { density: 512 }).resize(380, 380).png().toBuffer();
-await sharp({ create: { width: 512, height: 512, channels: 4, background: "#f6f3ee" } })
+await sharp({ create: { width: 512, height: 512, channels: 4, background: "#f7f5fc" } })
   .composite([{ input: inner, left: 66, top: 66 }])
   .png()
   .toFile(`${out}/maskable-512.png`);

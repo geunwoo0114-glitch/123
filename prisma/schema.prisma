@@ -187,7 +187,7 @@ model Profile {
 model SpaceSettings {
   userId        String   @id
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  themeId       String   @default("peach")
+  themeId       String   @default("lavender")
   backgroundId  String   @default("paper")
   layoutVariant String   @default("classic")
   cardStyle     String   @default("soft")

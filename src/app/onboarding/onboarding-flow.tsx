@@ -32,7 +32,7 @@ export function OnboardingFlow({ username, displayName: initialName, avatar: ini
   const [statusMessage, setStatusMessage] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [custom, setCustom] = useState("");
-  const [themeId, setThemeId] = useState<SpaceThemeId>("peach");
+  const [themeId, setThemeId] = useState<SpaceThemeId>("lavender");
   const [pending, start] = useTransition();
   const toast = useToast();
   const router = useRouter();
