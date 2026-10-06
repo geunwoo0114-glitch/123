@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.E2E_PORT ?? 3100);
-const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${port}`;
+const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -21,5 +21,11 @@ export default defineConfig({
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
-    : { command: `npm run start -- -p ${port}`, url: baseURL, reuseExistingServer: true, timeout: 120_000 },
+    : {
+        command: "npm run start",
+        url: `${baseURL}/api/health`,
+        reuseExistingServer: true,
+        timeout: 120_000,
+        env: { PORT: String(port), HOSTNAME: "127.0.0.1", RATE_LIMIT_MULTIPLIER: "50", ENABLE_DEV_MAIL: "1" },
+      },
 });

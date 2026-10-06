@@ -58,13 +58,30 @@ npm run dev             # http://localhost:3000
 
 | 명령 | 설명 |
 |---|---|
-| `npm run dev` / `build` / `start` | 개발 / 빌드 / 실행 |
+| `npm run dev` / `build` / `start` | 개발 / 빌드 / 운영 서버 실행(standalone) |
 | `npm run lint` · `npm run typecheck` | ESLint · TypeScript |
 | `npm test` | 단위 테스트 (Vitest) |
-| `npm run test:e2e` | E2E (Playwright, `npm run build` 후 실행. 브라우저 경로는 `PW_CHROMIUM_PATH`로 지정 가능) |
+| `npm run test:e2e` | E2E (Playwright). `npm run build` 후 실행하면 운영 빌드를 직접 띄워 테스트. 브라우저 경로는 `PW_CHROMIUM_PATH`로 지정 가능 |
 | `npm run db:migrate` · `db:deploy` · `db:seed` | 마이그레이션(개발) · 운영 배포 · 시드 |
 
-E2E는 같은 IP에서 로그인을 반복하므로 테스트 서버는 `RATE_LIMIT_MULTIPLIER=50`으로 띄우는 것을 권장합니다.
+E2E가 직접 띄우는 테스트 서버는 같은 IP에서 로그인을 반복하므로 `RATE_LIMIT_MULTIPLIER=50`, 메일 보관함을 위해 `ENABLE_DEV_MAIL=1`로 실행됩니다(playwright.config.ts).
+
+## 배포
+
+**Docker (권장)** — Next.js standalone 이미지 + Postgres + 마이그레이션을 한 번에:
+
+```bash
+cp .env.example .env     # APP_URL, POSTGRES_PASSWORD, VAPID 키, SMTP_URL 등 설정
+docker compose up --build -d
+```
+
+- `migrate` 서비스가 `prisma migrate deploy`를 실행한 뒤 `app`이 뜹니다.
+- 업로드 이미지는 `uploads` 볼륨(`/data/uploads`)에 저장됩니다.
+- 헬스체크: `GET /api/health` (DB 연결 확인).
+
+**직접 실행** — `npm run build` 후 `npm start`(standalone 서버). 마이그레이션은 `npm run db:deploy`.
+
+**CI** — `.github/workflows/ci.yml`: Postgres 서비스와 함께 lint → typecheck → 단위 테스트 → 빌드 → **운영 빌드 대상 E2E**(데스크톱+모바일).
 
 ## 구조
 

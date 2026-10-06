@@ -43,7 +43,8 @@ test("신고 → 운영자가 숨김 + 계정 정지 → 콘텐츠가 사라지�
   const a = await ca.newPage();
   await signup(a, admin, "운영자");
   await completeOnboarding(a);
-  execSync(`psql "${process.env.DATABASE_URL ?? "postgresql://darak:darak@localhost:5432/darak"}" -c "UPDATE \\"User\\" SET role='ADMIN' WHERE username='${admin}'"`);
+  const dbUrl = (process.env.DATABASE_URL ?? "postgresql://darak:darak@localhost:5432/darak").split("?")[0];
+  execSync(`psql "${dbUrl}" -c "UPDATE \\"User\\" SET role='ADMIN' WHERE username='${admin}'"`);
   await a.goto("/admin");
   const card = a.locator("article", { hasText: spam });
   await expect(card).toBeVisible();

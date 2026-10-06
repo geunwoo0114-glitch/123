@@ -13,11 +13,18 @@ import { track } from "@/features/analytics/track";
  * 비로그인 방문자는 IP+UA 해시로 익명 집계하고, 개인을 식별할 수 있는 값은 저장하지 않는다.
  * 방문 흔적(누가 왔는지)은 방문자가 '흔적 남기기'를 켠 경우에만 남는다.
  */
-export async function recordVisit(hostId: string, viewerId: string | null) {
+/** 렌더 중에 읽어 두는 요청 정보 (after() 안에서는 headers()를 쓸 수 없다) */
+export type VisitRequestInfo = { userAgent: string; forwardedFor: string };
+
+export async function visitRequestInfo(): Promise<VisitRequestInfo> {
+  const h = await headers();
+  return { userAgent: h.get("user-agent") ?? "", forwardedFor: h.get("x-forwarded-for") ?? "" };
+}
+
+export async function recordVisit(hostId: string, viewerId: string | null, req: VisitRequestInfo) {
   if (viewerId === hostId) return;
   try {
-    const h = await headers();
-    if (/bot|crawler|spider|preview/i.test(h.get("user-agent") ?? "")) return;
+    if (/bot|crawler|spider|preview/i.test(req.userAgent)) return;
     const day = serviceDay();
     let visitorKey: string;
     let traced = false;
@@ -26,7 +33,7 @@ export async function recordVisit(hostId: string, viewerId: string | null) {
       const s = await db.userSettings.findUnique({ where: { userId: viewerId }, select: { leaveVisitTraces: true } });
       traced = s?.leaveVisitTraces ?? true;
     } else {
-      const raw = `${h.get("x-forwarded-for") ?? ""}|${h.get("user-agent") ?? ""}|${day}`;
+      const raw = `${req.forwardedFor}|${req.userAgent}|${day}`;
       visitorKey = `a:${createHash("sha256").update(raw).digest("hex").slice(0, 32)}`;
     }
 

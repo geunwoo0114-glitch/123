@@ -5,7 +5,7 @@ import { Lock } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getSpace } from "@/features/space/queries";
 import { themeStyle } from "@/features/space/themes";
-import { recordVisit, visitStats } from "@/features/visits/service";
+import { recordVisit, visitRequestInfo, visitStats } from "@/features/visits/service";
 import { countGuestbook } from "@/features/guestbook/queries";
 import { brand } from "@/config/brand";
 import { cn } from "@/lib/cn";
@@ -58,7 +58,10 @@ export default async function SpaceLayout({ children, params }: LayoutProps<"/u/
   const { owner, theme, relation } = space;
   const isOwner = relation.state === "SELF";
   // 방문 기록은 응답을 보낸 뒤에 처리해 렌더링을 막지 않는다
-  if (space.canView) after(() => recordVisit(owner.id, viewer?.id ?? null));
+  if (space.canView) {
+    const req = await visitRequestInfo();
+    after(() => recordVisit(owner.id, viewer?.id ?? null, req));
+  }
   const [stats, guestbookCount] = await Promise.all([visitStats(owner.id), countGuestbook(owner.id)]);
 
   const profile = (

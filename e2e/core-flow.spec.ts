@@ -30,6 +30,11 @@ test("다른 사용자가 공간에 방문해 방명록을 남기고 친구 신�
 
   await g.goto(`/@${host}`);
   await expect(g.getByRole("heading", { name: "호스트" })).toBeVisible();
+  // 방문이 집계된다 (응답 후 기록되므로 새로고침하며 확인)
+  await expect(async () => {
+    await g.reload();
+    await expect(g.getByLabel(/오늘 방문 1명/)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 10_000 });
   await g.getByRole("link", { name: /방명록/ }).first().click();
   await g.getByLabel("방명록 내용").fill("놀러 왔어요! 방 예쁘다");
   await g.getByRole("button", { name: "남기기", exact: true }).click();

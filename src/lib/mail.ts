@@ -24,7 +24,8 @@ export async function sendMail(mail: Mail): Promise<void> {
       await t.sendMail({ from: process.env.MAIL_FROM ?? `${brand.name} <no-reply@darak.app>`, ...mail });
       return;
     }
-    if (process.env.NODE_ENV === "production") {
+    // 운영 환경에서 SMTP가 없으면 보내지 않는다 (E2E용 운영 빌드에서는 ENABLE_DEV_MAIL=1로 보관함 사용)
+    if (process.env.NODE_ENV === "production" && process.env.ENABLE_DEV_MAIL !== "1") {
       logger.error("SMTP_URL이 설정되지 않아 메일을 보내지 못했어요", { subject: mail.subject });
       return;
     }

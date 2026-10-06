@@ -12,6 +12,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Docker 배포용: 필요한 파일만 담은 .next/standalone 생성
+  output: "standalone",
   serverExternalPackages: ["sharp"],
   async rewrites() {
     // 공개 주소는 /@username, 내부 라우트는 /u/[username]
