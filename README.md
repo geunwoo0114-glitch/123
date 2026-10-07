@@ -71,20 +71,18 @@ E2E가 직접 띄우는 테스트 서버는 같은 IP에서 로그인을 반복�
 
 ## 배포
 
-### 가장 쉬운 방법: Render (클릭 몇 번으로 공개 주소 만들기)
+### 가장 쉬운 방법: Render (무료, 카드 없이 클릭 몇 번)
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/geunwoo0114-glitch/123)
 
-1. [render.com](https://render.com)에 GitHub 계정으로 가입하고, 이 저장소 접근을 허용합니다.
-2. 위 버튼(또는 **New → Blueprint** → 이 저장소)을 누르면 `render.yaml`대로 **웹 서버 + PostgreSQL + 사진 디스크**가 만들어집니다.
-3. 비밀 값 입력 화면이 나오면:
-   - `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`: 컴퓨터에서 `npx web-push generate-vapid-keys`로 만든 값 (비우면 웹 푸시만 꺼짐)
-   - `SMTP_URL`: 메일 서버 주소 (비우면 이메일 인증·비밀번호 재설정 메일만 안 감)
-   - `APP_URL`: 처음엔 비워 두세요. Render 주소(`https://darak-xxxx.onrender.com`)를 자동으로 씁니다.
-4. 배포가 끝나면(약 5~10분) 주소로 접속합니다. **DB 마이그레이션은 컨테이너가 시작할 때 자동으로 적용**됩니다.
-5. 첫 운영자 계정: 가입 후 Render의 PostgreSQL **Shell**에서 `UPDATE "User" SET role='ADMIN' WHERE username='내아이디';`
+1. 위 버튼을 누르고 **GitHub로 로그인**합니다(처음이면 Render 가입이 같이 됩니다). 저장소 접근을 묻으면 이 저장소를 허용합니다.
+2. `render.yaml`대로 **웹 서버 + PostgreSQL**이 만들어집니다. 비밀 값 입력 칸(`APP_URL`, `VAPID_*`, `SMTP_URL`)은 **모두 비워 두고** **Apply / Deploy**를 누릅니다.
+3. 5~10분 뒤 서비스 화면 위쪽에 **`https://darak-xxxx.onrender.com`** 주소가 생기면 완성입니다. DB 마이그레이션은 컨테이너가 시작할 때 자동으로 적용됩니다.
+4. 첫 운영자 계정: 가입 후 Render의 PostgreSQL **Shell**에서 `UPDATE "User" SET role='ADMIN' WHERE username='내아이디';`
 
-비용(2026년 기준 대략): 웹 서버 Starter 약 $7/월 + PostgreSQL Basic 약 $6/월. 서버는 싱가포르 지역(한국에서 가장 가까움).
+**무료 플랜의 한계** — 15분 동안 접속이 없으면 서버가 잠들어 다음 접속이 1분쯤 느립니다. 무료 DB는 30일 뒤 만료되니 계속 쓰려면 그 전에 `render.yaml`의 `plan`을 `starter`(웹, 약 $7/월) / `basic-256mb`(DB, 약 $6/월)로 바꿉니다. 사진은 DB에 저장됩니다(`STORAGE_DRIVER=db`). 사진이 많아지면 S3·Cloudflare R2(`STORAGE_DRIVER=s3`)로 옮깁니다.
+
+비워 둔 값의 의미: `VAPID_*`가 없으면 웹 푸시만 꺼지고, `SMTP_URL`이 없으면 이메일 인증·비밀번호 재설정 메일만 안 갑니다. 나머지 기능은 모두 동작합니다.
 
 **내 도메인 연결** — 도메인을 산 뒤 Render 서비스의 **Settings → Custom Domains**에 추가하고, 안내대로 DNS(CNAME)를 설정합니다. HTTPS 인증서는 자동입니다. 그다음 `APP_URL`을 새 주소로 바꿉니다.
 

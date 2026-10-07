@@ -713,3 +713,10 @@ model SpacePresence {
   @@id([hostId, userId])
   @@index([hostId, lastSeenAt])
 }
+
+/// 사진 원본 저장소 (STORAGE_DRIVER=db). 디스크가 없는 무료 호스팅에서 사진이 사라지지 않게 DB에 둔다.
+model MediaBlob {
+  key       String   @id
+  data      Bytes
+  createdAt DateTime @default(now())
+}
