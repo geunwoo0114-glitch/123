@@ -33,7 +33,10 @@ jobs:
       - run: bun build src/app-entry.ts --compile --minify --target=bun-windows-x64 --outfile out/blog-app/blog-app.exe
       - run: |
           cp packaging/README-windows.txt out/blog-app/시작하기.txt
-          cd out && LC_ALL=C.UTF-8 zip -qr blog-app-windows.zip blog-app
+          # Info-ZIP은 한글 파일 이름을 #Uxxxx로 바꿔 버리므로, UTF-8 플래그를 붙이는 파이썬 zipfile로 묶는다.
+          cd out && python3 -c "import pathlib, zipfile
+          with zipfile.ZipFile('blog-app-windows.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+              [z.write(f) for f in sorted(pathlib.Path('blog-app').rglob('*'))]"
       - uses: actions/upload-artifact@v4
         with: { name: windows, path: blog-automation/out/blog-app-windows.zip }
 
