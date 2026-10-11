@@ -3,16 +3,14 @@
  * 127.0.0.1에만 열리고, 다른 사이트가 이 서버를 몰래 부르지 못하도록 Host·Origin·전용 헤더를 검사한다.
  */
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import http from "node:http";
-import path from "node:path";
 import { marked } from "marked";
 import { z } from "zod";
 import { listPosts, readPost, readTopics, updatePost, writePost, writeTopics } from "./pipeline.js";
 import { listOllamaModels, testClaude } from "./providers.js";
 import { publishAll, testWordPress } from "./publishers.js";
 import { PostSchema, SettingsSchema, type Settings } from "./schema.js";
-import { loadSettings, maskSecrets, ROOT, saveSettings, SECRET_MASK } from "./settings.js";
+import { loadSettings, maskSecrets, saveSettings, SECRET_MASK } from "./settings.js";
 
 const HOST = "127.0.0.1";
 const START_PORT = Number(process.env.PORT ?? 4848);
@@ -118,13 +116,13 @@ function send(res: http.ServerResponse, status: number, body: string, type: stri
   res.end(body);
 }
 
-function createServer(port: () => number) {
+function createServer(port: () => number, loadUi: () => Promise<string>) {
   return http.createServer(async (req, res) => {
     try {
       checkRequest(req, port());
       const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
       if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
-        return send(res, 200, await readFile(path.join(ROOT, "ui", "index.html"), "utf8"), "text/html; charset=utf-8");
+        return send(res, 200, await loadUi(), "text/html; charset=utf-8");
       }
       const handler = routes[`${req.method} ${url.pathname}`];
       if (!handler) throw new HttpError(404, "없는 주소입니다.");
@@ -149,9 +147,10 @@ function openBrowser(url: string) {
   }
 }
 
-function listen(port: number, tries = 10) {
+/** 화면(HTML)을 어디서 읽을지는 실행 방식에 따라 다르다: 개발은 ui/ 파일, 실행 파일은 내장 문자열. */
+export function startServer(loadUi: () => Promise<string>, port = START_PORT, tries = 10) {
   let current = port;
-  const server = createServer(() => current);
+  const server = createServer(() => current, loadUi);
   server.requestTimeout = 0; // 글쓰기는 몇 분 걸릴 수 있다.
   server.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE" && tries-- > 0) {
@@ -173,4 +172,3 @@ function listen(port: number, tries = 10) {
   });
 }
 
-listen(START_PORT);

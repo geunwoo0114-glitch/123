@@ -3,23 +3,31 @@
 주제만 적으면 AI가 블로그 글을 써 주는 프로그램입니다. **Claude** 또는 **내 컴퓨터 AI(Ollama)** 를 고를 수 있고,
 다 쓴 글은 화면에서 읽고 고친 뒤 **WordPress에 바로 올리거나**, **서식째 복사해서 네이버 블로그·티스토리에 붙여 넣을** 수 있어요.
 
-## 친구에게: 이렇게 시작하세요 (5분)
+## 친구에게: 이렇게 시작하세요 (3분)
 
-1. **Node.js 설치** — [nodejs.org](https://nodejs.org/ko/download)에서 **LTS** 버전을 받아 설치합니다. (처음 한 번만)
-2. **프로그램 받기** — [Releases의 blog-app.zip](https://github.com/geunwoo0114-glitch/123/releases/tag/blog-app)을 받아 압축을 풉니다.
-   (zip 파일을 친구에게 카톡 등으로 그대로 보내 줘도 됩니다)
-3. **실행** — 압축 푼 폴더에서
-   - 윈도우: `start-windows.bat` 더블클릭
-     ("Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**)
-   - 맥: `start-mac.command`를 **우클릭 → 열기** (처음 한 번만 이렇게, 다음부터는 더블클릭)
+1. **프로그램 받기** — [Releases 페이지](https://github.com/geunwoo0114-glitch/123/releases/tag/blog-app)에서 내 컴퓨터에 맞는 파일을 받아 압축을 풉니다. (zip을 카톡 등으로 그대로 보내 줘도 됩니다)
+   - 윈도우: `blog-app-windows.zip`
+   - 맥(애플 실리콘·인텔 모두): `blog-app-mac.zip`
+2. **실행** — 따로 설치할 것은 없습니다.
+   - 윈도우: `blog-app.exe` 더블클릭 → "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**
+   - 맥: `blog-app`을 **우클릭 → 열기 → 열기** (처음 한 번만, 다음부터는 더블클릭)
+     열기 버튼이 없으면 시스템 설정 → 개인정보 보호 및 보안 → **그래도 열기**
 
-   처음에는 필요한 파일을 1~2분 설치하고, 브라우저에 프로그램 화면(`http://localhost:4848`)이 자동으로 열립니다.
-4. **설정** 탭에서 AI를 연결합니다.
+   브라우저에 프로그램 화면(`http://localhost:4848`)이 자동으로 열립니다.
+3. **설정** 탭에서 AI를 연결합니다.
    - **Claude**: [console.anthropic.com](https://console.anthropic.com/settings/keys)에서 API 키를 만들어 붙여 넣고 **연결 확인**. (쓴 만큼 요금이 나옵니다)
    - **내 컴퓨터 AI**: [ollama.com](https://ollama.com/download)에서 Ollama 설치 → 터미널에서 `ollama pull qwen2.5:7b` → **Ollama 확인**. (무료, 컴퓨터가 좋을수록 빠름)
-5. **블로그 성격**(이름·독자·말투)을 적고 **설정 저장**. 이제 **글쓰기** 탭에서 주제를 적고 ✨ 버튼을 누르면 끝!
+4. **블로그 성격**(이름·독자·말투)을 적고 **설정 저장**. 이제 **글쓰기** 탭에서 주제를 적고 ✨ 버튼을 누르면 끝!
 
-> 프로그램 창(검은 창)을 닫으면 프로그램도 꺼집니다. 쓸 때마다 3번처럼 실행하세요.
+> 프로그램 창(검은 창/터미널)을 닫으면 프로그램도 꺼집니다. 설정과 쓴 글은 실행 파일과 같은 폴더에 저장되니,
+> 새 버전이 나오면 실행 파일만 바꾸면 됩니다.
+
+<details>
+<summary>Node.js가 이미 있는 사람: 소스로 실행하기</summary>
+
+`blog-app-source.zip`을 받아 압축을 풀고 `start-windows.bat`(윈도우) 또는 `start-mac.command`(맥)를 더블클릭하세요.
+처음 실행할 때 필요한 파일을 1~2분 설치합니다. ([Node.js LTS](https://nodejs.org/ko/download) 20 이상 필요)
+</details>
 
 ## 화면 구성
 
@@ -46,7 +54,7 @@
 
 | 증상 | 해결 |
 |---|---|
-| 검은 창에 "Node.js가 설치되어 있지 않습니다" | 1번대로 Node.js LTS 설치 후 다시 실행 |
+| 맥에서 "확인되지 않은 개발자" 창 | 2번대로 우클릭 → 열기, 또는 시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기 |
 | "Claude API 키가 올바르지 않습니다" | 키를 다시 복사해 붙여 넣기, Anthropic 콘솔에서 결제 수단 등록 확인 |
 | "Ollama에 연결하지 못했습니다" | Ollama 앱을 켜 두기 |
 | "'모델' 모델이 없습니다" | 터미널에서 `ollama pull 모델이름` |
@@ -64,7 +72,7 @@
 
 블로그 성격은 `blog.config.json`에서 정합니다(프로그램 화면의 설정은 각자 컴퓨터에만 적용).
 
-`blog-automation/`이 기본 브랜치에 바뀌면 `.github/workflows/blog-app-package.yml`이 친구용 `blog-app.zip`을 다시 만들어 Releases에 올립니다.
+`blog-automation/`이 기본 브랜치에 바뀌면 `.github/workflows/blog-app-package.yml`이 윈도우·맥 실행 파일과 소스 zip을 다시 만들어 Releases(`blog-app` 태그)에 올립니다. 직접 만들려면 `bun run build:app`(Bun 필요).
 
 ### 명령줄로 쓰기
 

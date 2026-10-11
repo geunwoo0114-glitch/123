@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx src/server.ts",
+    "start": "tsx src/main.ts",
     "generate": "tsx src/cli.ts",
+    "build:app": "bun build src/app-entry.ts --compile --minify --outfile dist/blog-app",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

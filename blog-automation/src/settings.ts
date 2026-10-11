@@ -4,7 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SettingsSchema, type Settings } from "./schema.js";
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+/** 실행 파일 하나로 묶였을 때(bun --compile)는 소스 경로가 가상이라, 내 데이터는 실행 파일 옆에 둔다. */
+export const BUNDLED = /\$bunfs|~BUN/.test(import.meta.url);
+export const ROOT = BUNDLED ? path.dirname(process.execPath) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const SETTINGS_PATH = path.join(ROOT, "settings.json");
 const BLOG_CONFIG_PATH = path.join(ROOT, "blog.config.json");
 
