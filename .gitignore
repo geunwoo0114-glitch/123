@@ -49,3 +49,6 @@ next-env.d.ts
 # local backups
 /darak.bundle
 /darak-source.zip
+
+# blog automation
+/blog-automation/node_modules
