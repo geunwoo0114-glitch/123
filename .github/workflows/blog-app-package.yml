@@ -1,0 +1,97 @@
+name: Blog app package
+
+# 친구에게 보낼 "블로그 자동화" 프로그램을 만들어 Releases에 올린다.
+#   blog-app-windows.zip  윈도우 실행 파일(Node 필요 없음)
+#   blog-app-mac.zip      맥 실행 파일(애플 실리콘·인텔 겸용, Node 필요 없음)
+#   blog-app-source.zip   소스(Node로 실행, start-windows.bat / start-mac.command)
+# 다운로드 주소: https://github.com/<owner>/<repo>/releases/tag/blog-app
+on:
+  workflow_dispatch:
+  push:
+    paths: ["blog-automation/**", ".github/workflows/blog-app-package.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-app-package
+  cancel-in-progress: true
+
+env:
+  BUN_VERSION: "1.4.2"
+
+jobs:
+  windows:
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: blog-automation } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: "${{ env.BUN_VERSION }}" }
+      - run: bun install --frozen-lockfile
+      - run: bun build src/app-entry.ts --compile --minify --target=bun-windows-x64 --outfile out/blog-app/blog-app.exe
+      - run: |
+          cp packaging/README-windows.txt out/blog-app/시작하기.txt
+          cd out && LC_ALL=C.UTF-8 zip -qr blog-app-windows.zip blog-app
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: blog-automation/out/blog-app-windows.zip }
+
+  mac:
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == github.event.repository.default_branch
+    runs-on: macos-latest
+    defaults: { run: { working-directory: blog-automation } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: "${{ env.BUN_VERSION }}" }
+      - run: bun install --frozen-lockfile
+      - name: Build universal binary
+        run: |
+          bun build src/app-entry.ts --compile --minify --target=bun-darwin-arm64 --outfile out/arm64
+          bun build src/app-entry.ts --compile --minify --target=bun-darwin-x64 --outfile out/x64
+          mkdir -p out/blog-app
+          lipo -create -output out/blog-app/blog-app out/arm64 out/x64
+          # 서명이 없으면 애플 실리콘에서 실행이 막히므로 최소한의 자체 서명(ad-hoc)을 한다.
+          codesign --force --sign - out/blog-app/blog-app
+          chmod +x out/blog-app/blog-app
+          cp packaging/README-mac.txt out/blog-app/시작하기.txt
+          cd out && ditto -c -k --keepParent blog-app blog-app-mac.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: mac, path: blog-automation/out/blog-app-mac.zip }
+
+  release:
+    needs: [windows, mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Source zip
+        run: |
+          mkdir -p dist/src/blog-app
+          cd blog-automation
+          # 내 글·비밀 설정은 빼고, 프로그램만 담는다.
+          git ls-files | grep -vE '^(posts/.+\.md|settings\.json)$' | while read -r f; do
+            mkdir -p "../dist/src/blog-app/$(dirname "$f")"; cp -p "$f" "../dist/src/blog-app/$f"
+          done
+          printf '# 글감 대기열\n\n- [ ] 첫 번째 글 주제를 여기에 적어 보세요\n' > ../dist/src/blog-app/topics.md
+          chmod +x ../dist/src/blog-app/start-mac.command
+          cd ../dist/src && zip -qr ../blog-app-source.zip blog-app
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(printf '%s\n' \
+            "블로그 자동화 프로그램 (빌드: ${GITHUB_SHA::7})" "" \
+            "- 윈도우: blog-app-windows.zip → 압축 풀고 blog-app.exe 더블클릭" \
+            "- 맥: blog-app-mac.zip → 압축 풀고 blog-app 우클릭 → 열기" \
+            "- Node.js가 있는 사람: blog-app-source.zip" "" \
+            "자세한 안내는 압축 안의 시작하기.txt를 보세요.")
+          FILES="dist/blog-app-windows.zip dist/blog-app-mac.zip dist/blog-app-source.zip"
+          if gh release view blog-app >/dev/null 2>&1; then
+            gh release upload blog-app $FILES --clobber
+            gh release edit blog-app --notes "$NOTES"
+          else
+            gh release create blog-app $FILES --title "블로그 자동화 프로그램" --notes "$NOTES" --latest=false
+          fi

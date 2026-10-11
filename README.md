@@ -28,6 +28,11 @@
 
 공개 범위는 모든 콘텐츠에 **전체 / 친구 / 친한 친구 / 나만** 4단계로 적용되며, 서버에서 검사합니다.
 
+## 블로그 AI 자동화
+
+`blog-automation/`은 Claude 또는 로컬 AI(Ollama)로 블로그 글을 쓰고 WordPress·웹훅으로 발행하는 별도 프로그램입니다(더블클릭 실행, 브라우저 화면).
+GitHub Actions(`.github/workflows/blog-automation.yml`)가 평일 아침마다 실행합니다. 사용법은 [`blog-automation/README.md`](blog-automation/README.md).
+
 ## 기술 스택
 
 - **Next.js 16** (App Router, Server Components, Server Actions, Turbopack) · **React 19** · **TypeScript**

@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>블로그 자동화</title>
+<style>
+  :root {
+    --bg: #f7f6fb; --card: #ffffff; --text: #1f1d2b; --muted: #6b6880; --line: #e4e1ef;
+    --accent: #6d5bd0; --accent-ink: #ffffff; --accent-soft: #eeebfb;
+    --ok: #1f7a4d; --ok-soft: #e5f5ec; --err: #b42318; --err-soft: #fdecea;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15141c; --card: #1e1c28; --text: #ecebf3; --muted: #a29fb5; --line: #33303f;
+      --accent: #9d8ff0; --accent-ink: #15141c; --accent-soft: #2a2640;
+      --ok: #6fd3a0; --ok-soft: #173326; --err: #ff8a80; --err-soft: #3a1c1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 "Pretendard", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  .bar { max-width: 960px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .brand { font-weight: 700; font-size: 17px; margin-right: auto; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button { background: none; border: 0; padding: 8px 14px; border-radius: 999px; color: var(--muted); font: inherit; cursor: pointer; }
+  nav button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  main { max-width: 960px; margin: 0 auto; padding: 20px 16px 60px; }
+  section[hidden] { display: none; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  h2 { font-size: 18px; margin: 0 0 4px; }
+  h3 { font-size: 15px; margin: 0 0 12px; }
+  p.hint { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
+  label small { font-weight: 400; color: var(--muted); }
+  input, textarea, select { width: 100%; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea { resize: vertical; min-height: 80px; }
+  textarea.body { min-height: 360px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  button.btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 18px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--text); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.big { padding: 14px 28px; font-size: 16px; }
+  button:disabled { opacity: .55; cursor: wait; }
+  .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choice label { margin: 0; font-weight: 400; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; background: var(--bg); }
+  .choice label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .choice input { width: auto; margin-right: 6px; }
+  .choice b { display: block; }
+  .choice span { color: var(--muted); font-size: 13px; }
+  .msg { border-radius: 10px; padding: 10px 14px; margin-top: 12px; font-size: 14px; white-space: pre-wrap; }
+  .msg.ok { background: var(--ok-soft); color: var(--ok); }
+  .msg.err { background: var(--err-soft); color: var(--err); }
+  .msg.info { background: var(--accent-soft); color: var(--accent); }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .list li:last-child { border-bottom: 0; }
+  .list .grow { flex: 1; min-width: 0; }
+  .list .done { color: var(--muted); text-decoration: line-through; }
+  .list a { color: var(--text); cursor: pointer; text-decoration: none; font-weight: 600; }
+  .list a:hover { color: var(--accent); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .tabs2 { display: flex; gap: 6px; margin-bottom: 10px; }
+  iframe.preview { width: 100%; min-height: 420px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .spinner { width: 18px; height: 18px; border: 3px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
+  .steps li { margin: 4px 0; }
+  a.ext { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">✍️ 블로그 자동화</div>
+    <nav role="tablist">
+      <button role="tab" data-tab="write" aria-selected="true">글쓰기</button>
+      <button role="tab" data-tab="posts" aria-selected="false">내 글</button>
+      <button role="tab" data-tab="topics" aria-selected="false">글감 목록</button>
+      <button role="tab" data-tab="settings" aria-selected="false">설정</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- 글쓰기 -->
+  <section id="tab-write">
+    <div id="welcome" class="card" hidden>
+      <h2>처음 오셨네요 👋</h2>
+      <p class="hint">글을 쓰려면 AI를 하나 연결해야 합니다. <b>설정</b>에서 Claude API 키를 넣거나, 내 컴퓨터의 Ollama를 고르세요.</p>
+      <button class="btn primary" data-goto="settings">설정하러 가기</button>
+    </div>
+
+    <div class="card">
+      <h2>새 글 쓰기</h2>
+      <p class="hint">주제를 적고 버튼을 누르면 AI가 글을 써서 저장합니다. 비워 두면 <b>글감 목록</b>의 맨 위 주제로 씁니다.</p>
+      <label for="w-topic">주제</label>
+      <input id="w-topic" placeholder="예: 가을 사진 예쁘게 찍는 법">
+      <label for="w-extra">추가 요청 <small>(선택)</small></label>
+      <textarea id="w-extra" placeholder="예: 초보자 눈높이로, 체크리스트를 꼭 넣어 줘"></textarea>
+      <label>어떤 AI로 쓸까요?</label>
+      <div class="choice">
+        <label><input type="radio" name="w-provider" value="claude"><b>Claude</b><span>품질이 가장 좋아요 · API 키 필요</span></label>
+        <label><input type="radio" name="w-provider" value="ollama"><b>내 컴퓨터 AI</b><span>무료 · Ollama 필요</span></label>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button id="w-go" class="btn primary big">✨ 글 쓰기</button>
+        <span id="w-status" class="muted"></span>
+      </div>
+      <div id="w-msg"></div>
+    </div>
+  </section>
+
+  <!-- 내 글 -->
+  <section id="tab-posts" hidden>
+    <div class="card">
+      <h2>내 글</h2>
+      <p class="hint">AI가 쓴 글은 모두 여기에 저장됩니다. 눌러서 읽고, 고치고, 발행하세요.</p>
+      <ul id="p-list" class="list"></ul>
+    </div>
+  </section>
+
+  <!-- 글 편집기 (글쓰기·내 글 공용) -->
+  <section id="editor" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="e-heading">글 보기</h2>
+        <span id="e-file" class="muted"></span>
+      </div>
+      <div class="tabs2">
+        <button class="btn" data-view="preview">미리보기</button>
+        <button class="btn" data-view="edit">고치기</button>
+      </div>
+      <div id="e-preview-wrap">
+        <iframe id="e-preview" class="preview" sandbox="allow-same-origin" title="글 미리보기"></iframe>
+      </div>
+      <div id="e-edit-wrap" hidden>
+        <label for="e-title">제목</label><input id="e-title">
+        <label for="e-excerpt">요약</label><input id="e-excerpt">
+        <label for="e-tags">태그 <small>(쉼표로 구분)</small></label><input id="e-tags">
+        <label for="e-md">본문 <small>(마크다운)</small></label><textarea id="e-md" class="body"></textarea>
+        <div class="row" style="margin-top:12px"><button id="e-save" class="btn primary">고친 내용 저장</button></div>
+      </div>
+      <h3 style="margin-top:20px">이 글을 어디에 올릴까요?</h3>
+      <div class="row">
+        <button id="e-publish" class="btn primary">🚀 WordPress/웹훅에 발행</button>
+        <button id="e-copy-html" class="btn">📋 서식째 복사 (네이버·티스토리 붙여넣기용)</button>
+        <button id="e-copy-md" class="btn">마크다운 복사</button>
+      </div>
+      <div id="e-msg"></div>
+    </div>
+  </section>
+
+  <!-- 글감 목록 -->
+  <section id="tab-topics" hidden>
+    <div class="card">
+      <h2>글감 목록</h2>
+      <p class="hint">미리 주제를 쌓아 두면 주제를 비운 채 "글 쓰기"를 누를 때마다 위에서부터 하나씩 씁니다.</p>
+      <div class="row">
+        <input id="t-new" placeholder="새 주제를 입력하고 Enter" style="flex:1">
+        <button id="t-add" class="btn primary">추가</button>
+      </div>
+      <ul id="t-list" class="list" style="margin-top:12px"></ul>
+      <div id="t-msg"></div>
+    </div>
+  </section>
+
+  <!-- 설정 -->
+  <section id="tab-settings" hidden>
+    <form id="s-form" autocomplete="off">
+      <div class="card">
+        <h2>1. AI 연결</h2>
+        <p class="hint">기본으로 쓸 AI를 고르세요. 글쓰기 화면에서 매번 바꿀 수도 있어요.</p>
+        <div class="choice">
+          <label><input type="radio" name="provider" value="claude"><b>Claude</b><span>품질이 가장 좋아요 · 사용한 만큼 요금</span></label>
+          <label><input type="radio" name="provider" value="ollama"><b>내 컴퓨터 AI (Ollama)</b><span>무료 · 컴퓨터 성능에 따라 느릴 수 있어요</span></label>
+        </div>
+
+        <h3 style="margin-top:22px">Claude</h3>
+        <ol class="steps">
+          <li><a class="ext" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>에 가입하고 결제 수단을 등록합니다.</li>
+          <li>API Keys → Create Key로 키를 만들어 아래에 붙여 넣습니다. (키는 이 컴퓨터에만 저장돼요)</li>
+        </ol>
+        <div class="grid2">
+          <div><label for="s-claude-key">API 키</label><input id="s-claude-key" name="claude.apiKey" type="password" placeholder="sk-ant-..."></div>
+          <div><label for="s-claude-model">모델</label>
+            <select id="s-claude-model" name="claude.model">
+              <option value="claude-opus-5-5">Claude Opus 5.5 (최고 품질)</option>
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (빠르고 저렴)</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5 (가장 저렴)</option>
+            </select></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button type="button" class="btn" id="s-test-claude">연결 확인</button></div>
+        <div id="s-claude-msg"></div>
+
+        <h3 style="margin-top:22px">내 컴퓨터 AI (Ollama)</h3>
+        <ol class="steps">
+          <li><a class="ext" href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com</a>에서 Ollama를 설치하고 실행합니다.</li>
+          <li>터미널(명령 프롬프트)에서 <code>ollama pull qwen2.5:7b</code> 처럼 모델을 받습니다. 한국어는 qwen2.5·gemma 계열을 추천해요.</li>
+        </ol>
+        <div class="grid2">
+          <div><label for="s-ollama-host">Ollama 주소</label><input id="s-ollama-host" name="ollama.host"></div>
+          <div><label for="s-ollama-model">모델 <small id="s-ollama-state"></small></label>
+            <input id="s-ollama-model" name="ollama.model" list="s-ollama-models">
+            <datalist id="s-ollama-models"></datalist></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button type="button" class="btn" id="s-test-ollama">Ollama 확인</button></div>
+        <div id="s-ollama-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>2. 내 블로그 성격</h2>
+        <p class="hint">AI가 이 내용을 보고 내 블로그에 맞는 글을 씁니다.</p>
+        <div class="grid2">
+          <div><label for="s-blogName">블로그 이름</label><input id="s-blogName" name="blog.blogName"></div>
+          <div><label for="s-minChars">최소 글자 수</label><input id="s-minChars" name="blog.minChars" type="number" min="300" step="100"></div>
+        </div>
+        <label for="s-audience">누가 읽나요?</label><input id="s-audience" name="blog.audience" placeholder="예: 육아하는 30대 부모">
+        <label for="s-tone">말투</label><input id="s-tone" name="blog.tone" placeholder="예: 친근한 존댓말, 경험담 위주">
+        <label for="s-guidelines">꼭 지켜야 할 것 <small>(한 줄에 하나)</small></label>
+        <textarea id="s-guidelines" name="blog.guidelines" placeholder="예: 마지막에 3줄 요약을 넣는다"></textarea>
+      </div>
+
+      <div class="card">
+        <h2>3. 발행할 곳 <small class="muted">(선택)</small></h2>
+        <p class="hint">비워 두면 글은 "내 글"에만 저장되고, <b>서식째 복사</b>로 네이버 블로그·티스토리 편집기에 붙여 넣을 수 있어요.</p>
+        <h3>WordPress</h3>
+        <ol class="steps">
+          <li>WordPress 관리자 → 사용자 → 프로필 → <b>애플리케이션 비밀번호</b>에서 새 비밀번호를 만듭니다.</li>
+        </ol>
+        <div class="grid2">
+          <div><label for="s-wp-url">사이트 주소</label><input id="s-wp-url" name="wordpress.url" placeholder="https://myblog.com"></div>
+          <div><label for="s-wp-user">사용자 이름</label><input id="s-wp-user" name="wordpress.username"></div>
+          <div><label for="s-wp-pass">애플리케이션 비밀번호</label><input id="s-wp-pass" name="wordpress.appPassword" type="password"></div>
+          <div><label for="s-wp-status">올리는 방식</label>
+            <select id="s-wp-status" name="wordpress.status">
+              <option value="draft">임시글로 (내가 확인 후 공개) — 추천</option>
+              <option value="pending">검토 대기로</option>
+              <option value="private">비공개로</option>
+              <option value="publish">바로 공개</option>
+            </select></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button type="button" class="btn" id="s-test-wp">WordPress 연결 확인</button></div>
+        <div id="s-wp-msg"></div>
+
+        <h3 style="margin-top:22px">웹훅 <small class="muted">(Make·Zapier·n8n 연결용, 잘 모르면 비워 두세요)</small></h3>
+        <label for="s-webhook">웹훅 주소</label><input id="s-webhook" name="webhookUrl" placeholder="https://hook.make.com/...">
+      </div>
+
+      <div class="row"><button class="btn primary big" type="submit">설정 저장</button><span id="s-saved" class="muted"></span></div>
+    </form>
+  </section>
+</main>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-blog-app": "1" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({ error: "프로그램 응답을 읽지 못했습니다. 프로그램 창이 켜져 있는지 확인하세요." }));
+  if (!res.ok) throw new Error(data.error || "알 수 없는 오류");
+  return data;
+}
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function msg(el, kind, text) {
+  el.innerHTML = "";
+  if (!text) return;
+  const div = document.createElement("div");
+  div.className = `msg ${kind}`;
+  div.textContent = text;
+  el.append(div);
+}
+
+/* ---------- 탭 ---------- */
+let currentTab = "write";
+function showTab(name) {
+  currentTab = name;
+  $$("nav [role=tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  for (const t of ["write", "posts", "topics", "settings"]) $(`#tab-${t}`).hidden = t !== name;
+  $("#editor").hidden = !(name === "posts" && openFile) && !(name === "write" && openFile && openedFromWrite);
+  if (name === "posts") loadPosts();
+  if (name === "topics") loadTopics();
+  if (name === "settings") loadSettingsForm();
+}
+$$("nav [role=tab]").forEach((b) => b.addEventListener("click", () => { openFile = null; showTab(b.dataset.tab); }));
+$$("[data-goto]").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.goto)));
+
+/* ---------- 설정 ---------- */
+let settings = null;
+
+function setField(form, name, value) {
+  const els = form.querySelectorAll(`[name="${name}"]`);
+  els.forEach((el) => {
+    if (el.type === "radio") el.checked = el.value === value;
+    else if (name === "blog.guidelines") el.value = (value || []).join("\n");
+    else el.value = value ?? "";
+  });
+}
+
+function fillForm(s) {
+  const f = $("#s-form");
+  setField(f, "provider", s.provider);
+  for (const [k, v] of Object.entries({
+    "claude.apiKey": s.claude.apiKey, "claude.model": s.claude.model,
+    "ollama.host": s.ollama.host, "ollama.model": s.ollama.model,
+    "blog.blogName": s.blog.blogName, "blog.minChars": s.blog.minChars, "blog.audience": s.blog.audience,
+    "blog.tone": s.blog.tone, "blog.guidelines": s.blog.guidelines,
+    "wordpress.url": s.wordpress.url, "wordpress.username": s.wordpress.username,
+    "wordpress.appPassword": s.wordpress.appPassword, "wordpress.status": s.wordpress.status,
+    webhookUrl: s.webhookUrl,
+  })) setField(f, k, v);
+  // 목록에 없는 모델이면 선택지로 추가
+  const sel = $("#s-claude-model");
+  if (![...sel.options].some((o) => o.value === s.claude.model)) sel.add(new Option(s.claude.model, s.claude.model));
+  sel.value = s.claude.model;
+}
+
+function readForm() {
+  const f = $("#s-form");
+  const v = (n) => f.querySelector(`[name="${n}"]`).value.trim();
+  return {
+    provider: f.querySelector("[name=provider]:checked")?.value || "claude",
+    claude: { apiKey: v("claude.apiKey"), model: v("claude.model") },
+    ollama: { host: v("ollama.host"), model: v("ollama.model") },
+    blog: {
+      ...(settings?.blog || {}),
+      blogName: v("blog.blogName"), audience: v("blog.audience"), tone: v("blog.tone"),
+      minChars: Number(v("blog.minChars")) || 2500,
+      guidelines: v("blog.guidelines").split("\n").map((x) => x.trim()).filter(Boolean),
+    },
+    wordpress: {
+      ...(settings?.wordpress || {}),
+      url: v("wordpress.url"), username: v("wordpress.username"),
+      appPassword: v("wordpress.appPassword"), status: v("wordpress.status"),
+    },
+    webhookUrl: v("webhookUrl"),
+  };
+}
+
+async function loadSettingsForm() {
+  settings = await api("/api/settings");
+  fillForm(settings);
+  refreshOllama(false);
+}
+
+async function refreshOllama(showMsg) {
+  const host = $("#s-ollama-host").value.trim();
+  const { models } = await api(`/api/ollama/models?host=${encodeURIComponent(host)}`);
+  const list = $("#s-ollama-models");
+  list.innerHTML = "";
+  if (models === null) {
+    $("#s-ollama-state").textContent = "(Ollama 꺼짐)";
+    if (showMsg) msg($("#s-ollama-msg"), "err", "Ollama에 연결하지 못했습니다. Ollama 앱을 켜고 다시 눌러 주세요.");
+    return;
+  }
+  models.forEach((m) => list.append(new Option(m, m)));
+  $("#s-ollama-state").textContent = `(받은 모델 ${models.length}개)`;
+  if (showMsg) {
+    const cur = $("#s-ollama-model").value.trim();
+    if (!models.length) msg($("#s-ollama-msg"), "err", "받아 둔 모델이 없습니다. 터미널에서 'ollama pull qwen2.5:7b'를 실행하세요.");
+    else if (!models.includes(cur)) msg($("#s-ollama-msg"), "err", `'${cur}' 모델이 없습니다. 받은 모델: ${models.join(", ")}`);
+    else msg($("#s-ollama-msg"), "ok", `Ollama 연결 성공 · '${cur}' 사용 가능`);
+  }
+}
+
+$("#s-test-ollama").addEventListener("click", () => refreshOllama(true).catch((e) => msg($("#s-ollama-msg"), "err", e.message)));
+
+async function runTest(btn, out, path) {
+  btn.disabled = true;
+  msg(out, "info", "확인 중…");
+  try { msg(out, "ok", (await api(path, readForm())).message); }
+  catch (e) { msg(out, "err", e.message); }
+  finally { btn.disabled = false; }
+}
+$("#s-test-claude").addEventListener("click", (e) => runTest(e.currentTarget, $("#s-claude-msg"), "/api/test/claude"));
+$("#s-test-wp").addEventListener("click", (e) => runTest(e.currentTarget, $("#s-wp-msg"), "/api/test/wordpress"));
+
+$("#s-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    settings = await api("/api/settings", readForm());
+    fillForm(settings);
+    $("#s-saved").textContent = "✅ 저장했어요";
+    setTimeout(() => ($("#s-saved").textContent = ""), 3000);
+    syncWriteDefaults();
+  } catch (err) {
+    $("#s-saved").textContent = `❌ ${err.message}`;
+  }
+});
+
+function syncWriteDefaults() {
+  $$("[name=w-provider]").forEach((r) => (r.checked = r.value === settings.provider));
+  $("#welcome").hidden = !(settings.provider === "claude" && !settings.claude.apiKey);
+}
+
+/* ---------- 글쓰기 ---------- */
+let openFile = null;
+let openedFromWrite = false;
+let openPost = null;
+
+$("#w-go").addEventListener("click", async () => {
+  const btn = $("#w-go");
+  const provider = $("[name=w-provider]:checked")?.value;
+  btn.disabled = true;
+  msg($("#w-msg"), "", "");
+  const started = Date.now();
+  const tick = () => {
+    const s = Math.round((Date.now() - started) / 1000);
+    $("#w-status").innerHTML = `<span class="spinner"></span> AI가 글을 쓰고 있어요… ${s}초 (보통 1~3분, 내 컴퓨터 AI는 더 걸릴 수 있어요)`;
+  };
+  tick();
+  const timer = setInterval(tick, 1000);
+  try {
+    const data = await api("/api/generate", { topic: $("#w-topic").value, extra: $("#w-extra").value, provider });
+    $("#w-topic").value = "";
+    $("#w-extra").value = "";
+    msg($("#w-msg"), "ok", `완성! "${data.topic}" 글을 저장했어요. 아래에서 확인하세요.`);
+    openedFromWrite = true;
+    showEditor(data.fileName, data.post, data.html);
+  } catch (e) {
+    msg($("#w-msg"), "err", e.message);
+  } finally {
+    clearInterval(timer);
+    $("#w-status").textContent = "";
+    btn.disabled = false;
+  }
+});
+
+/* ---------- 편집기 ---------- */
+function setView(view) {
+  $("#e-preview-wrap").hidden = view !== "preview";
+  $("#e-edit-wrap").hidden = view !== "edit";
+  $$("[data-view]").forEach((b) => b.classList.toggle("primary", b.dataset.view === view));
+}
+$$("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+
+function renderPreview(post, html) {
+  $("#e-preview").srcdoc = `<!doctype html><meta charset="utf-8"><style>
+    body{font:16px/1.75 -apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}
+    h1{font-size:26px;line-height:1.35}h2{margin-top:32px}img{max-width:100%}blockquote{border-left:4px solid #ddd;margin:0;padding-left:14px;color:#555}
+    table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 10px}code{background:#f3f3f6;padding:1px 4px;border-radius:4px}
+    .tags{color:#6d5bd0;font-size:14px}.ex{color:#666}</style>
+    <h1>${esc(post.title)}</h1><p class="ex">${esc(post.excerpt)}</p><p class="tags">${post.tags.map((t) => "#" + esc(t)).join(" ")}</p><hr>${html}`;
+  lastHtml = html;
+}
+let lastHtml = "";
+
+function showEditor(file, post, html) {
+  openFile = file;
+  openPost = post;
+  $("#e-heading").textContent = post.title;
+  $("#e-file").textContent = file;
+  $("#e-title").value = post.title;
+  $("#e-excerpt").value = post.excerpt;
+  $("#e-tags").value = post.tags.join(", ");
+  $("#e-md").value = post.markdown;
+  renderPreview(post, html);
+  setView("preview");
+  msg($("#e-msg"), "", "");
+  $("#editor").hidden = false;
+  $("#editor").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function editedPost() {
+  return {
+    ...openPost,
+    title: $("#e-title").value.trim(),
+    excerpt: $("#e-excerpt").value.trim(),
+    tags: $("#e-tags").value.split(",").map((t) => t.trim()).filter(Boolean),
+    markdown: $("#e-md").value,
+  };
+}
+
+$("#e-save").addEventListener("click", async () => {
+  try {
+    const post = editedPost();
+    const { html } = await api("/api/post", { file: openFile, post });
+    openPost = post;
+    $("#e-heading").textContent = post.title;
+    renderPreview(post, html);
+    setView("preview");
+    msg($("#e-msg"), "ok", "저장했어요.");
+  } catch (e) { msg($("#e-msg"), "err", e.message); }
+});
+
+$("#e-publish").addEventListener("click", async (ev) => {
+  const btn = ev.currentTarget;
+  if (!$("#e-edit-wrap").hidden && JSON.stringify(editedPost()) !== JSON.stringify(openPost)) {
+    if (!confirm("고친 내용을 아직 저장하지 않았어요. 저장하지 않은 채 발행할까요?")) return;
+  }
+  btn.disabled = true;
+  msg($("#e-msg"), "info", "발행하는 중…");
+  try {
+    const { results } = await api("/api/publish", { file: openFile });
+    msg($("#e-msg"), "ok", results.map((r) => `✅ ${r.target}${r.url ? `\n${r.url}` : ""}`).join("\n"));
+  } catch (e) { msg($("#e-msg"), "err", e.message); }
+  finally { btn.disabled = false; }
+});
+
+$("#e-copy-html").addEventListener("click", async () => {
+  const html = `<h1>${esc(openPost.title)}</h1>${lastHtml}`;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({
+      "text/html": new Blob([html], { type: "text/html" }),
+      "text/plain": new Blob([openPost.markdown], { type: "text/plain" }),
+    })]);
+    msg($("#e-msg"), "ok", "복사했어요. 네이버 블로그·티스토리 글쓰기 화면에 붙여 넣으세요(Ctrl+V / ⌘+V).");
+  } catch { msg($("#e-msg"), "err", "복사하지 못했어요. 미리보기에서 직접 드래그해 복사해 주세요."); }
+});
+$("#e-copy-md").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(`# ${openPost.title}\n\n${openPost.markdown}`);
+    msg($("#e-msg"), "ok", "마크다운을 복사했어요.");
+  } catch { msg($("#e-msg"), "err", "복사하지 못했어요."); }
+});
+
+/* ---------- 내 글 ---------- */
+async function loadPosts() {
+  const ul = $("#p-list");
+  const { posts } = await api("/api/posts");
+  ul.innerHTML = "";
+  if (!posts.length) { ul.innerHTML = '<li class="muted">아직 쓴 글이 없어요. 글쓰기에서 첫 글을 만들어 보세요.</li>'; return; }
+  for (const p of posts) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.textContent = p.title;
+    a.addEventListener("click", async () => {
+      const data = await api(`/api/post?file=${encodeURIComponent(p.fileName)}`);
+      openedFromWrite = false;
+      showEditor(p.fileName, data.post, data.html);
+    });
+    const grow = document.createElement("div");
+    grow.className = "grow";
+    grow.append(a);
+    const date = document.createElement("span");
+    date.className = "muted";
+    date.textContent = p.date;
+    li.append(grow, date);
+    ul.append(li);
+  }
+}
+
+/* ---------- 글감 목록 ---------- */
+let topicsText = "";
+const TOPIC = /^(\s*[-*]\s+)\[( |x)\]\s+(.+?)\s*$/;
+
+function renderTopics() {
+  const ul = $("#t-list");
+  ul.innerHTML = "";
+  const lines = topicsText.split("\n");
+  let count = 0;
+  lines.forEach((line, i) => {
+    const m = TOPIC.exec(line);
+    if (!m) return;
+    count++;
+    const li = document.createElement("li");
+    const grow = document.createElement("div");
+    grow.className = "grow" + (m[2] === "x" ? " done" : "");
+    grow.textContent = (m[2] === "x" ? "✔ " : "○ ") + m[3];
+    const del = document.createElement("button");
+    del.className = "btn";
+    del.textContent = "삭제";
+    del.addEventListener("click", () => {
+      const next = topicsText.split("\n");
+      next.splice(i, 1);
+      saveTopics(next.join("\n"));
+    });
+    li.append(grow, del);
+    ul.append(li);
+  });
+  if (!count) ul.innerHTML = '<li class="muted">글감이 없어요. 위에서 추가해 보세요.</li>';
+}
+
+async function loadTopics() {
+  topicsText = (await api("/api/topics")).text || "# 글감 대기열\n";
+  renderTopics();
+}
+
+async function saveTopics(text) {
+  try {
+    await api("/api/topics", { text });
+    topicsText = text;
+    renderTopics();
+  } catch (e) { msg($("#t-msg"), "err", e.message); }
+}
+
+function addTopic() {
+  const v = $("#t-new").value.trim().replace(/\s+/g, " ");
+  if (!v) return;
+  const base = topicsText.replace(/\s*$/, "");
+  saveTopics(`${base}\n- [ ] ${v}\n`);
+  $("#t-new").value = "";
+}
+$("#t-add").addEventListener("click", addTopic);
+$("#t-new").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) addTopic(); });
+
+/* ---------- 시작 ---------- */
+api("/api/settings").then((s) => { settings = s; syncWriteDefaults(); })
+  .catch((e) => msg($("#w-msg"), "err", e.message));
+</script>
+</body>
+</html>

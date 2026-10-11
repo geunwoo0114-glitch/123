@@ -1,0 +1,15 @@
+{
+  "blogName": "다락 이야기",
+  "language": "ko",
+  "audience": "SNS와 온라인 기록을 좋아하는 20~30대",
+  "tone": "친근하지만 정확한 존댓말, 과장 없이 구체적인 예시 중심",
+  "minChars": 2500,
+  "guidelines": [
+    "실생활에서 바로 따라 할 수 있는 팁을 3개 이상 넣는다",
+    "광고성 문구나 과한 이모지는 쓰지 않는다"
+  ],
+  "wordpress": {
+    "status": "draft",
+    "categoryIds": []
+  }
+}
