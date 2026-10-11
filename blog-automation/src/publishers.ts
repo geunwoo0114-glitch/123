@@ -1,28 +1,39 @@
 import { marked } from "marked";
-import type { BlogConfig, Post } from "./schema.js";
+import type { Post, Settings } from "./schema.js";
 
 export interface PublishResult {
   target: string;
   url?: string;
 }
 
+export function hasWordPress(s: Settings): boolean {
+  return Boolean(s.wordpress.url && s.wordpress.username && s.wordpress.appPassword);
+}
+
 /**
  * WordPress REST API. 관리자 화면 → 사용자 → 프로필 → "애플리케이션 비밀번호"로 만든 값을 쓴다.
- * WP_URL, WP_USERNAME, WP_APP_PASSWORD가 모두 있을 때만 동작한다.
  */
-export async function publishToWordPress(post: Post, config: BlogConfig): Promise<PublishResult | null> {
-  const { WP_URL, WP_USERNAME, WP_APP_PASSWORD } = process.env;
-  if (!WP_URL || !WP_USERNAME || !WP_APP_PASSWORD) return null;
+export async function publishToWordPress(post: Post, settings: Settings): Promise<PublishResult | null> {
+  if (!hasWordPress(settings)) return null;
+  const { url, username, appPassword, status, categoryIds } = settings.wordpress;
 
-  const base = `${WP_URL.replace(/\/$/, "")}/wp-json/wp/v2`;
+  const base = `${url.replace(/\/$/, "")}/wp-json/wp/v2`;
   const headers = {
     "content-type": "application/json",
-    authorization: `Basic ${Buffer.from(`${WP_USERNAME}:${WP_APP_PASSWORD}`).toString("base64")}`,
+    authorization: `Basic ${Buffer.from(`${username}:${appPassword}`).toString("base64")}`,
   };
 
   async function wp<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(`${base}${path}`, { ...init, headers });
-    if (!res.ok) throw new Error(`WordPress ${path} 실패 (${res.status}): ${await res.text()}`);
+    let res: Response;
+    try {
+      res = await fetch(`${base}${path}`, { ...init, headers });
+    } catch {
+      throw new Error(`WordPress(${url})에 연결하지 못했습니다. 주소를 확인하세요.`);
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("WordPress 로그인에 실패했습니다. 사용자 이름과 애플리케이션 비밀번호를 확인하세요.");
+    }
+    if (!res.ok) throw new Error(`WordPress ${path} 실패 (${res.status}): ${(await res.text()).slice(0, 300)}`);
     return (await res.json()) as T;
   }
 
@@ -40,26 +51,54 @@ export async function publishToWordPress(post: Post, config: BlogConfig): Promis
       slug: post.slug,
       excerpt: post.excerpt,
       content: await marked.parse(post.markdown),
-      status: config.wordpress.status,
+      status,
       tags: tagIds,
-      categories: config.wordpress.categoryIds,
+      categories: categoryIds,
     }),
   });
-  return { target: `WordPress (${config.wordpress.status})`, url: created.link };
+  const label = { draft: "임시글", publish: "공개", pending: "검토 대기", private: "비공개" }[status];
+  return { target: `WordPress (${label})`, url: created.link };
 }
 
 /**
  * 범용 웹훅. Make·Zapier·n8n 시나리오로 받아 네이버 블로그·티스토리·Notion 등에 이어 붙인다.
- * BLOG_WEBHOOK_URL이 있을 때만 동작한다.
  */
-export async function publishToWebhook(post: Post): Promise<PublishResult | null> {
-  const url = process.env.BLOG_WEBHOOK_URL;
-  if (!url) return null;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ...post, html: await marked.parse(post.markdown) }),
-  });
-  if (!res.ok) throw new Error(`웹훅 전송 실패 (${res.status}): ${await res.text()}`);
+export async function publishToWebhook(post: Post, settings: Settings): Promise<PublishResult | null> {
+  if (!settings.webhookUrl) return null;
+  let res: Response;
+  try {
+    res = await fetch(settings.webhookUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...post, html: await marked.parse(post.markdown) }),
+    });
+  } catch {
+    throw new Error("웹훅 주소에 연결하지 못했습니다.");
+  }
+  if (!res.ok) throw new Error(`웹훅 전송 실패 (${res.status}): ${(await res.text()).slice(0, 300)}`);
   return { target: "웹훅" };
+}
+
+export async function publishAll(post: Post, settings: Settings): Promise<PublishResult[]> {
+  const results = [await publishToWordPress(post, settings), await publishToWebhook(post, settings)];
+  return results.filter((r): r is PublishResult => r !== null);
+}
+
+/** 설정 화면의 "연결 확인" 버튼. 글은 올리지 않고 로그인만 해 본다. */
+export async function testWordPress(settings: Settings): Promise<string> {
+  if (!hasWordPress(settings)) throw new Error("WordPress 주소·사용자 이름·애플리케이션 비밀번호를 모두 넣어 주세요.");
+  const { url, username, appPassword } = settings.wordpress;
+  let res: Response;
+  try {
+    res = await fetch(`${url.replace(/\/$/, "")}/wp-json/wp/v2/users/me?context=edit`, {
+      headers: { authorization: `Basic ${Buffer.from(`${username}:${appPassword}`).toString("base64")}` },
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    throw new Error(`WordPress(${url})에 연결하지 못했습니다. 주소를 확인하세요.`);
+  }
+  if (res.status === 401 || res.status === 403) throw new Error("로그인 실패: 사용자 이름과 애플리케이션 비밀번호를 확인하세요.");
+  if (!res.ok) throw new Error(`WordPress 응답 오류 (${res.status}). 주소가 WordPress 사이트인지 확인하세요.`);
+  const me = (await res.json()) as { name?: string };
+  return `WordPress 연결 성공 (${me.name ?? username})`;
 }

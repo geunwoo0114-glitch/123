@@ -11,19 +11,41 @@ export const PostSchema = z.object({
 
 export type Post = z.infer<typeof PostSchema>;
 
-export const ConfigSchema = z.object({
-  blogName: z.string(),
+export const BlogProfileSchema = z.object({
+  blogName: z.string().default("내 블로그"),
   language: z.string().default("ko"),
-  audience: z.string(),
-  tone: z.string(),
+  audience: z.string().default("일반 독자"),
+  tone: z.string().default("친근하지만 정확한 존댓말"),
   minChars: z.number().int().positive().default(2500),
   guidelines: z.array(z.string()).default([]),
+});
+
+export type BlogProfile = z.infer<typeof BlogProfileSchema>;
+
+/**
+ * 한 사람의 설정 전체. 프로그램 화면에서 저장하면 settings.json(각자 컴퓨터에만 있음)에 들어가고,
+ * GitHub Actions에서는 같은 값을 환경 변수로 받는다.
+ */
+export const SettingsSchema = z.object({
+  provider: z.enum(["claude", "ollama"]).default("claude"),
+  claude: z
+    .object({ apiKey: z.string().default(""), model: z.string().default("claude-opus-5-5") })
+    .default({ apiKey: "", model: "claude-opus-5-5" }),
+  ollama: z
+    .object({ host: z.string().default("http://127.0.0.1:11434"), model: z.string().default("qwen2.5:7b") })
+    .default({ host: "http://127.0.0.1:11434", model: "qwen2.5:7b" }),
   wordpress: z
     .object({
+      url: z.string().default(""),
+      username: z.string().default(""),
+      appPassword: z.string().default(""),
       status: z.enum(["draft", "publish", "pending", "private"]).default("draft"),
       categoryIds: z.array(z.number().int()).default([]),
     })
-    .default({ status: "draft", categoryIds: [] }),
+    .default({ url: "", username: "", appPassword: "", status: "draft", categoryIds: [] }),
+  webhookUrl: z.string().default(""),
+  blog: BlogProfileSchema.default(BlogProfileSchema.parse({})),
 });
 
-export type BlogConfig = z.infer<typeof ConfigSchema>;
+export type Settings = z.infer<typeof SettingsSchema>;
+export type ProviderName = Settings["provider"];
