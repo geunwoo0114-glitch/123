@@ -33,6 +33,10 @@
 `blog-automation/`은 Claude 또는 로컬 AI(Ollama)로 블로그 글을 쓰고 WordPress·웹훅으로 발행하는 별도 프로그램입니다(더블클릭 실행, 브라우저 화면).
 GitHub Actions(`.github/workflows/blog-automation.yml`)가 평일 아침마다 실행합니다. 사용법은 [`blog-automation/README.md`](blog-automation/README.md).
 
+## Threads 예약 발행 (쿠팡 파트너스)
+
+`threads-automation/`은 상품·제휴 링크를 등록하고, Claude로 소개 글 초안을 만들고, 사람이 확인한 뒤 Meta 공식 Threads API로 예약 발행하는 별도 프로그램입니다(광고 표시 자동 첨부, 발행 상태·실패 기록). 사용법과 조사한 요건은 [`threads-automation/README.md`](threads-automation/README.md).
+
 ## 기술 스택
 
 - **Next.js 16** (App Router, Server Components, Server Actions, Turbopack) · **React 19** · **TypeScript**

@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // 별도 패키지(자체 tsconfig·의존성)
     "blog-automation/**",
+    "threads-automation/**",
   ]),
 ]);
 
